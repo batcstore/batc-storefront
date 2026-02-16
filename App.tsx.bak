@@ -1,0 +1,1519 @@
+
+import React, { useState, useEffect } from 'react';
+import { GoogleGenAI } from "@google/genai";
+import { PRODUCTS, CHARACTERS, LORE_PILLARS, HISTORICAL_TRAILS, PRODUCTION_INSIGHTS, LOCATIONS, TECH_GEAR, SEASON_ONE_EPISODES, CLUB_PILLARS, CLUB_EXPERIENCES, CLUB_BENEFITS, SMALL_PROJECTS } from './constants';
+import { ProductCard } from './components/ProductCard';
+import { CharacterCard } from './components/CharacterCard';
+import { SmallProjectCard } from './components/SmallProjectCard';
+import { ActionModal } from './components/ActionModal';
+import { View } from './types';
+
+interface ModalConfig {
+  isOpen: boolean;
+  title: string;
+  subtitle: string;
+  description: string;
+  buttonText: string;
+  stampText?: string;
+  stampColor?: 'red' | 'gold' | 'green';
+  onSuccess?: () => void;
+}
+
+const ImageGenerator: React.FC<{ prompt: string; fallbackImage: string; title: React.ReactNode; subtitle: React.ReactNode }> = ({ prompt, fallbackImage, title, subtitle }) => {
+  const [imageUrl, setImageUrl] = useState<string>(fallbackImage);
+  const [isGenerating, setIsGenerating] = useState(false);
+
+  const generateHeroImage = async () => {
+    setIsGenerating(true);
+    try {
+      const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+      const response = await ai.models.generateContent({
+        model: 'gemini-2.5-flash-image',
+        contents: {
+          parts: [{ text: prompt }],
+        },
+        config: {
+          imageConfig: {
+            aspectRatio: "16:9"
+          }
+        }
+      });
+
+      const imagePart = response.candidates?.[0]?.content?.parts.find(p => p.inlineData);
+      if (imagePart?.inlineData) {
+        setImageUrl(`data:image/png;base64,${imagePart.inlineData.data}`);
+      }
+    } catch (error) {
+      console.error("Image generation failed:", error);
+    } finally {
+      setIsGenerating(false);
+    }
+  };
+
+  return (
+    <div className="relative w-full h-[80vh] group overflow-hidden bg-obsidian">
+      <img 
+        src={imageUrl} 
+        className={`w-full h-full object-cover transition-all duration-[10s] ${isGenerating ? 'opacity-20 scale-110 blur-sm' : 'opacity-40 group-hover:scale-105'}`}
+        alt="Cinematic Hero"
+      />
+      
+      <div className="absolute inset-0 flex flex-col items-center justify-center text-center px-6 space-y-8 z-10">
+        <div className="space-y-4">
+          <span className="font-mono text-[10px] text-gold uppercase tracking-[1em] block animate-fade-up">Archive_Entry_001</span>
+          <h2 className="text-[8vw] lg:text-[10vw] font-serif italic font-bold tracking-tighter leading-none text-paper uppercase animate-fade-up">
+            {title}
+          </h2>
+          <div className="text-xl lg:text-3xl italic text-paper/70 max-w-4xl font-light leading-tight mx-auto animate-fade-up">
+            {subtitle}
+          </div>
+        </div>
+
+        {imageUrl === fallbackImage && !isGenerating && (
+          <button 
+            onClick={generateHeroImage}
+            className="px-12 py-6 bg-gold text-obsidian font-mono text-[10px] font-bold uppercase tracking-[0.4em] hover:bg-white transition-all shadow-2xl animate-fade-up"
+          >
+            Render Cinematic Visual_
+          </button>
+        )}
+      </div>
+
+      {isGenerating && (
+        <div className="absolute inset-0 flex flex-col items-center justify-center space-y-6 z-20">
+          <div className="w-12 h-12 border-2 border-gold border-t-transparent rounded-full animate-spin"></div>
+          <span className="font-mono text-[10px] text-gold uppercase tracking-[0.5em] animate-pulse">Syncing with the Archive...</span>
+        </div>
+      )}
+
+      <div className="absolute bottom-12 right-12 font-mono text-[8px] text-white/20 uppercase tracking-[0.5em] pointer-events-none">
+        {isGenerating ? "Processing_Input..." : "Visual_Stream_Active"}
+      </div>
+      
+      <div className="absolute bottom-0 left-0 w-full h-32 bg-gradient-to-t from-paper to-transparent"></div>
+    </div>
+  );
+};
+
+const App: React.FC = () => {
+  const [currentView, setCurrentView] = useState<View>('home');
+  const [hasPitchAccess, setHasPitchAccess] = useState(false);
+  const [modalConfig, setModalConfig] = useState<ModalConfig>({
+    isOpen: false,
+    title: '',
+    subtitle: '',
+    description: '',
+    buttonText: '',
+  });
+
+  const openModal = (config: Partial<ModalConfig>) => {
+    setModalConfig({
+      isOpen: true,
+      title: config.title || 'Secure Entry',
+      subtitle: config.subtitle || 'Bantu Ants Archive',
+      description: config.description || 'Provide your credentials to proceed.',
+      buttonText: config.buttonText || 'Confirm Transmission',
+      stampText: config.stampText,
+      stampColor: config.stampColor,
+      onSuccess: config.onSuccess,
+    });
+  };
+
+  const closeModal = () => setModalConfig(prev => ({ ...prev, isOpen: false }));
+
+  const handleActionSuccess = () => {
+    if (modalConfig.onSuccess) {
+      modalConfig.onSuccess();
+    }
+  };
+
+  const scrollToId = (id: string) => {
+    const element = document.getElementById(id);
+    if (element) {
+      element.scrollIntoView({ behavior: 'smooth' });
+    }
+  };
+
+  const navigateToClubAndScroll = () => {
+    setCurrentView('club');
+    setTimeout(() => scrollToId('experiences'), 100);
+  };
+
+  const NavItem = ({ view, label }: { view: View; label: string }) => (
+    <button 
+      onClick={() => setCurrentView(view)}
+      className={`font-mono text-[9px] font-bold uppercase tracking-[0.4em] transition-all relative py-2 ${
+        currentView === view ? 'text-gold' : 'text-obsidian/60 hover:text-obsidian'
+      }`}
+    >
+      {label}
+      {currentView === view && <div className="absolute bottom-0 left-0 w-full h-[1px] bg-gold"></div>}
+    </button>
+  );
+
+  const renderManifesto = () => (
+    <div className="animate-fade-up bg-paper min-h-screen">
+      <ImageGenerator 
+        title={<>The <span className="text-gold">Manifesto.</span></>}
+        subtitle="A declaration of narrative sovereignty. We travel to remember, we tell stories to survive, we wear our history to build the future."
+        prompt="A high-contrast cinematic shot of a scroll made of digital fiber, glowing with golden African fractals in a dimly lit obsidian room. The atmosphere is sacred and futuristic, 8k resolution."
+        fallbackImage="https://images.unsplash.com/photo-1518770660439-4636190af475?auto=format&fit=crop&q=80&w=2000"
+      />
+
+      <section className="py-40 px-6 lg:px-24 max-w-7xl mx-auto space-y-32">
+        <div className="grid lg:grid-cols-2 gap-24 items-start">
+          <div className="space-y-12">
+            <div className="passport-stamp text-gold border-gold">CORE_DECLARATION</div>
+            <h2 className="text-6xl lg:text-8xl font-serif italic font-bold tracking-tighter text-obsidian uppercase leading-[0.85]">
+              The Borderless <br /> <span className="text-gold">Sovereignty.</span>
+            </h2>
+            <p className="text-2xl font-serif italic text-obsidian/60 leading-relaxed font-light">
+              We envision an Africa where movement is a right, not a luxury. A continent without colonial scars, unified by the shared signal of our nomadic descendants.
+            </p>
+          </div>
+          <div className="p-12 border-l border-obsidian/10 space-y-8 bg-white shadow-sm">
+            <h3 className="font-mono text-xs font-bold uppercase tracking-[0.4em] text-gold">The Three Vows</h3>
+            <div className="space-y-12">
+              {[
+                { vow: "Narrative Sovereignty", desc: "We own the lens, the script, and the server. Our IP is our power." },
+                { vow: "Continental Mobility", desc: "Dissolving borders through story-led travel and decentralized tech." },
+                { vow: "Economic Inclusion", desc: "Travel for the many, not the few. High-depth experiences at low-barrier costs." }
+              ].map((item, i) => (
+                <div key={i} className="space-y-2">
+                  <span className="font-mono text-[10px] text-obsidian/20">0{i+1}</span>
+                  <h4 className="text-2xl font-serif italic font-bold text-obsidian uppercase">{item.vow}</h4>
+                  <p className="text-obsidian/50 italic">{item.desc}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+
+        {/* Deep Dive: Borderless Africa */}
+        <section className="py-32 border-y border-obsidian/5 grid lg:grid-cols-2 gap-24 items-center">
+          <div className="space-y-12">
+            <span className="font-mono text-xs text-gold uppercase tracking-[0.8em]">Operational Target / Zero Borders</span>
+            <h3 className="text-5xl lg:text-7xl font-serif italic font-bold text-obsidian uppercase leading-none">A Continent <span className="text-gold">Unbound.</span></h3>
+            <div className="space-y-6 text-xl italic text-obsidian/60 font-light leading-relaxed">
+              <p>For too long, the map of Africa has been drawn by those who never walked its trails. Bantu Ants is a movement to reclaim the soil by moving through it freely.</p>
+              <p className="p-8 bg-obsidian text-paper border-l-4 border-gold">"The 2088 Signal recognizes no checkpoints. Our travel protocols use decentralized 'Nomad Passes' to ensure that a Zulu can walk the Sahel and a Dogon can visit the Cape without friction."</p>
+              <p>We advocate for <strong>Accessible Exploration</strong>—using group-resource logic and community-owned routes to drive travel costs down by 60%, making the majesty of the continent available to every African and Diaspora member.</p>
+            </div>
+          </div>
+          <div className="relative aspect-[4/5] bg-obsidian">
+            <img src="https://images.unsplash.com/photo-1523482580672-f109ba8cb9be?auto=format&fit=crop&q=80&w=1200" className="w-full h-full object-cover opacity-60 grayscale" alt="Borderless Africa" />
+            <div className="absolute top-12 right-12 passport-stamp text-white rotate-12 scale-150">BORDERLESS_ACCESS</div>
+          </div>
+        </section>
+
+        {/* Closing Statement */}
+        <div className="text-center py-40 border-t border-obsidian/5 space-y-12">
+          <h4 className="text-4xl font-serif italic font-bold text-obsidian uppercase">Join the IP Rebellion.</h4>
+          <p className="text-xl italic text-obsidian/40 max-w-2xl mx-auto font-light leading-relaxed">
+            By funding the bag, you fund the mission. By joining the club, you sign the passport. By wearing the gear, you become the archive.
+          </p>
+          <div className="pt-12 flex justify-center gap-8">
+            <button 
+              onClick={() => setCurrentView('shop')}
+              className="btn-travel bg-obsidian text-paper hover:bg-gold hover:text-obsidian"
+            >
+              Support the Mission
+            </button>
+            <button 
+              onClick={() => openModal({
+                title: 'Join the Vanguard',
+                subtitle: 'Manifesto_Commitment',
+                description: 'Commit to the vision of a borderless Africa and narrative sovereignty. Gain early access to our upcoming projects and artifacts.',
+                buttonText: 'I Commit to the Vision',
+                stampText: 'VANGUARD_READY',
+                stampColor: 'gold'
+              })}
+              className="btn-travel"
+            >
+              Sign the Manifesto
+            </button>
+          </div>
+        </div>
+      </section>
+    </div>
+  );
+
+  const renderPitch = () => (
+    <div className="animate-fade-up bg-paper min-h-screen pt-32 pb-64">
+      <div className="max-w-7xl mx-auto px-6 lg:px-24 space-y-40">
+        
+        {/* SLIDE 1: COVER */}
+        <section className="min-h-[80vh] flex flex-col justify-center space-y-12">
+           <div className="space-y-6">
+              <div className="passport-stamp text-gold border-gold scale-125 origin-left">OFFICIAL_RELEASE</div>
+              <h2 className="text-[10vw] font-serif italic font-bold tracking-tighter text-obsidian uppercase leading-[0.8]">
+                Pitch <span className="text-gold">Deck.</span>
+              </h2>
+              <p className="text-3xl italic text-obsidian/40 max-w-2xl">A Cultural Movement Bridging Storytelling, Travel, and Fashion.</p>
+           </div>
+           <div className="pt-12 border-t border-obsidian/5 flex justify-between items-end">
+              <div className="font-mono text-[10px] text-obsidian/30 uppercase tracking-[0.5em]">Ref: Vision_2088_v4.0</div>
+              <div className="font-serif italic text-xl text-obsidian/60">A Myth. A Mirror. A Movement.</div>
+           </div>
+        </section>
+
+        {/* SLIDE 3: EXECUTIVE SUMMARY */}
+        <section className="grid lg:grid-cols-2 gap-24 items-center">
+           <div className="aspect-square bg-obsidian relative overflow-hidden group">
+              <img src="https://images.unsplash.com/photo-1530789253388-582c481c54b0?auto=format&fit=crop&q=80&w=1200" className="w-full h-full object-cover opacity-60 grayscale group-hover:grayscale-0 transition-all duration-1000" alt="Executive Summary" />
+              <div className="absolute inset-0 flex items-center justify-center">
+                 <div className="text-center space-y-4 px-12">
+                    <h4 className="text-paper font-serif italic text-4xl font-bold uppercase">Executive Summary</h4>
+                    <div className="w-12 h-[1px] bg-gold mx-auto"></div>
+                 </div>
+              </div>
+           </div>
+           <div className="space-y-12">
+              <span className="font-mono text-xs text-gold uppercase tracking-[0.8em]">03 / Transmedia Brand</span>
+              <h3 className="text-6xl font-serif italic font-bold tracking-tighter text-obsidian uppercase leading-none">Connecting <span className="text-gold">Africa</span> & Diaspora.</h3>
+              <p className="text-2xl italic text-obsidian/60 leading-relaxed font-light">
+                Bantu Ants Travel Club is a global cultural platform merging immersive African travel experiences, a narrative-rich animated series, and fashion rooted in Afrofuturism.
+              </p>
+              <div className="p-8 border-l-2 border-obsidian space-y-4">
+                 <p className="font-serif italic text-xl text-obsidian/80">"MLK sets the tone with a bold dream for equity, strategy, and lasting change. His leadership frames our mission: not just to disrupt, but to uplift."</p>
+                 <span className="font-mono text-[10px] text-obsidian/30 uppercase tracking-widest">— Martin Luther King Jr. Influence</span>
+              </div>
+           </div>
+        </section>
+
+        {/* SLIDE 4: THE PROBLEM */}
+        <section className="grid lg:grid-cols-2 gap-24 items-start py-24 border-t border-obsidian/5">
+           <div className="space-y-12 lg:sticky lg:top-40">
+              <span className="font-mono text-xs text-red uppercase tracking-[0.8em]">04 / The Gap</span>
+              <h3 className="text-6xl font-serif italic font-bold tracking-tighter text-obsidian uppercase leading-none">The <span className="text-red">Problem.</span></h3>
+              <ul className="space-y-6">
+                {['Africa’s stories are underrepresented.', 'Cultural travel lacks depth.', 'Most travel to Africa is extractive, not immersive.', 'Diaspora audiences want deeper connection.', 'Black-led IP ecosystems are underfunded.'].map((point, i) => (
+                  <li key={i} className="flex gap-4 items-start group">
+                    <span className="font-mono text-red text-xs mt-1">×</span>
+                    <p className="text-xl italic text-obsidian/60 group-hover:text-obsidian transition-colors">{point}</p>
+                  </li>
+                ))}
+              </ul>
+           </div>
+           <div className="relative">
+              <div className="aspect-[3/4] bg-obsidian overflow-hidden">
+                <img src="https://images.unsplash.com/photo-1548013146-72479768bbaa?auto=format&fit=crop&q=80&w=1200" className="w-full h-full object-cover opacity-50 grayscale" alt="Complexity and Chaos" />
+              </div>
+              <div className="absolute -bottom-10 -left-10 bg-white p-10 shadow-2xl space-y-4 max-w-sm">
+                 <h4 className="text-2xl font-serif italic font-bold uppercase text-red">Muammar Gaddafi</h4>
+                 <p className="text-sm italic text-obsidian/50 leading-relaxed">"A symbol of complexity and power unchecked. Represents the chaos and imbalance we aim to fix—a world where control outweighs justice."</p>
+              </div>
+           </div>
+        </section>
+
+        {/* SLIDE 5: OUR SOLUTION */}
+        <section className="space-y-24">
+           <header className="text-center space-y-4">
+              <span className="font-mono text-xs text-gold uppercase tracking-[0.8em]">05 / The Architecture</span>
+              <h3 className="text-7xl font-serif italic font-bold tracking-tighter text-obsidian uppercase">Our <span className="text-gold">Solution.</span></h3>
+              <p className="text-xl italic text-obsidian/40 max-w-2xl mx-auto">A multi-layered brand merging real and mythical Africa into one ecosystem.</p>
+           </header>
+           
+           <div className="grid md:grid-cols-3 gap-12">
+              {[
+                { title: 'The Travel Club', desc: 'Curated, story-led trips to real African locations.', icon: '🌍' },
+                { title: 'The Animation', desc: 'A bold, satirical sci-fi journey across future Africa.', icon: '🎬' },
+                { title: 'The Apparel', desc: 'Fashion inspired by characters and travel, designed for real-world wear.', icon: '👕' }
+              ].map((sol, i) => (
+                <div key={i} className="p-12 border border-obsidian/5 hover:border-gold transition-colors space-y-6">
+                   <div className="text-5xl">{sol.icon}</div>
+                   <h4 className="text-3xl font-serif italic font-bold text-obsidian uppercase">{sol.title}</h4>
+                   <p className="text-lg italic text-obsidian/60 leading-relaxed">{sol.desc}</p>
+                </div>
+              ))}
+           </div>
+
+           <div className="p-20 bg-obsidian text-paper space-y-8 relative overflow-hidden">
+              <div className="absolute top-0 right-0 p-12 opacity-5 font-serif text-[15vw] uppercase tracking-tighter pointer-events-none">NKrumah</div>
+              <h4 className="text-3xl font-serif italic font-bold uppercase text-gold">Kwame Nkrumah Philosophy</h4>
+              <p className="text-2xl italic font-light max-w-3xl leading-relaxed">
+                "Nkrumah stands as the blueprint of African self-determination and unity—our solution is rooted in his Pan-African ideals, tech-enabled progress, and cooperative economics."
+              </p>
+           </div>
+        </section>
+
+        {/* SLIDE 7: BUSINESS MODEL */}
+        <section className="py-24 border-y border-obsidian/5 grid lg:grid-cols-2 gap-24 items-center">
+           <div className="relative group">
+              <img src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&q=80&w=1200" className="aspect-square object-cover grayscale opacity-80 group-hover:grayscale-0 transition-all duration-1000" alt="Tupac Shakur Influence" />
+              <div className="absolute -bottom-8 right-8 bg-gold p-8 text-obsidian space-y-2 max-w-sm">
+                 <h4 className="font-serif italic font-bold text-2xl uppercase">Tupac Shakur</h4>
+                 <p className="text-xs italic leading-relaxed">"More than a rapper—Tupac was a revolutionary brand. Authenticity drives value, and every move speaks to the system."</p>
+              </div>
+           </div>
+           <div className="space-y-12">
+              <span className="font-mono text-xs text-gold uppercase tracking-[0.8em]">07 / Revenue Model</span>
+              <h3 className="text-6xl font-serif italic font-bold tracking-tighter text-obsidian uppercase leading-none">How We Make <span className="text-gold">Money.</span></h3>
+              
+              <div className="space-y-8">
+                 <div className="grid grid-cols-2 gap-12">
+                    <div className="space-y-4">
+                       <h4 className="font-mono text-xs font-bold uppercase tracking-widest text-gold">Travel Club</h4>
+                       <p className="text-obsidian/60 italic">Memberships, curated trips, brand partnerships.</p>
+                    </div>
+                    <div className="space-y-4">
+                       <h4 className="font-mono text-xs font-bold uppercase tracking-widest text-gold">Apparel Line</h4>
+                       <p className="text-obsidian/60 italic">Direct-to-consumer drops & collabs.</p>
+                    </div>
+                 </div>
+                 <div className="space-y-4">
+                    <h4 className="font-mono text-xs font-bold uppercase tracking-widest text-gold">Animation / IP</h4>
+                    <p className="text-obsidian/60 italic">Licensing, streaming deals, merch, brand placements.</p>
+                 </div>
+                 <div className="pt-8 border-t border-obsidian/5">
+                    <span className="font-mono text-[10px] text-obsidian/30 uppercase tracking-widest">Long-term: Mobile games, collectibles, educational spin-offs.</span>
+                 </div>
+              </div>
+           </div>
+        </section>
+
+        {/* SLIDE 11/12: THE ASK */}
+        <section className="bg-obsidian text-paper p-24 lg:p-40 space-y-24 relative overflow-hidden">
+           <div className="compass-needle absolute -top-40 -right-40 text-gold/5 text-[50vw] pointer-events-none select-none">🧭</div>
+           <div className="relative z-10 space-y-16">
+              <header className="space-y-6">
+                 <span className="font-mono text-xs text-gold uppercase tracking-[0.8em]">11 / Fuel the Foundation</span>
+                 <h3 className="text-7xl lg:text-9xl font-serif italic font-bold tracking-tighter uppercase leading-none">The <span className="text-gold">Ask.</span></h3>
+              </header>
+              
+              <div className="grid lg:grid-cols-2 gap-24">
+                 <div className="space-y-12">
+                    <h4 className="text-4xl font-serif italic font-bold uppercase text-gold">Use of Funds</h4>
+                    <ul className="space-y-6">
+                       {[
+                         'Animation pilot production',
+                         'Travel platform & member onboarding',
+                         'Core team support',
+                         'Brand partnerships & launch marketing'
+                       ].map((use, i) => (
+                         <li key={i} className="flex gap-4 items-center">
+                            <span className="w-2 h-2 bg-gold rounded-full"></span>
+                            <span className="text-2xl italic font-light">{use}</span>
+                         </li>
+                       ))}
+                    </ul>
+                 </div>
+                 <div className="p-12 border-2 border-gold/20 flex flex-col justify-center space-y-8">
+                    <div className="space-y-2 text-center">
+                       <span className="font-mono text-xs uppercase tracking-widest text-gold/60">Target Raise</span>
+                       <div className="text-8xl font-serif italic font-bold text-gold">$250,000</div>
+                    </div>
+                    <p className="text-xl italic text-paper/60 text-center leading-relaxed">
+                       Allowing us to expand our fashion line, develop travel experiences, and grow our community.
+                    </p>
+                    <button 
+                      onClick={() => openModal({
+                        title: 'Invest in the Vision',
+                        subtitle: 'Round_A Financing',
+                        description: 'Join the Syndicate and power the next phase of Bantu Ants. Provide your credentials for a secure investor dossier.',
+                        buttonText: 'Request Terms',
+                        stampText: 'FUNDING_DRIVE',
+                        stampColor: 'gold'
+                      })}
+                      className="w-full py-6 bg-gold text-obsidian font-mono text-xs font-bold uppercase tracking-[0.5em] hover:bg-paper transition-all"
+                    >
+                      Express Interest
+                    </button>
+                 </div>
+              </div>
+           </div>
+        </section>
+
+        {/* FINAL SLIDE: THANK YOU */}
+        <section className="py-40 text-center space-y-16">
+           <div className="space-y-4">
+              <h2 className="text-[15vw] font-serif italic font-bold tracking-tighter text-obsidian uppercase leading-none">Thank <span className="text-gold">You.</span></h2>
+              <p className="text-3xl italic text-obsidian/40">Do you want to work with us?</p>
+           </div>
+           <div className="flex flex-col items-center gap-8 pt-12">
+              <div className="font-mono text-lg text-obsidian tracking-[0.2em]">bantuantstravelclub.com</div>
+              <div className="font-mono text-lg text-obsidian tracking-[0.2em]">+1 (424) 781-4762</div>
+              <div className="w-1 h-32 bg-gold opacity-30"></div>
+              <button onClick={() => setCurrentView('home')} className="btn-travel">Return Home</button>
+           </div>
+        </section>
+
+      </div>
+    </div>
+  );
+
+  const renderClub = () => (
+    <div className="animate-fade-up bg-paper">
+      <ImageGenerator 
+        title={<>Travel <span className="text-gold">Africa.</span></>}
+        subtitle="Join an elite community of cultural explorers on immersive journeys through Africa and the Diaspora. Learn from history. Celebrate culture."
+        prompt="An exclusive high-end luxury resort lounge in a futuristic Neo-African city at dusk. Elegant people in Afrofuturist high-fashion, sleek obsidian and gold architecture, warm ambient lighting, cinematic, 8k resolution."
+        fallbackImage="https://images.unsplash.com/photo-1514395462725-fb4566210144?auto=format&fit=crop&q=80&w=2000"
+      />
+
+      <section className="py-32 px-6 lg:px-24 max-w-7xl mx-auto space-y-12">
+        <header className="space-y-8 max-w-5xl">
+          <div className="passport-stamp text-gold border-gold">MEMBERS_ONLY</div>
+          <div className="flex flex-wrap gap-6 pt-8">
+            <button 
+              onClick={() => openModal({
+                title: 'Apply for Membership',
+                subtitle: 'Travel Club Elite',
+                description: 'Our club is currently operating on a selective enrollment basis. Provide your contact details to begin the vetting process for the 2088 expedition cycle.',
+                buttonText: 'Submit Application',
+                stampText: 'selective_access',
+                stampColor: 'gold'
+              })}
+              className="btn-travel bg-obsidian text-paper hover:bg-gold hover:text-obsidian"
+            >
+              Join Club
+            </button>
+            <button 
+              onClick={() => scrollToId('experiences')} 
+              className="btn-travel"
+            >
+              View Experiences <span className="text-gold">↓</span>
+            </button>
+          </div>
+        </header>
+      </section>
+
+      <section className="py-40 px-6 lg:px-24 bg-obsidian text-paper">
+        <div className="max-w-7xl mx-auto space-y-24">
+          <header className="space-y-6">
+            <span className="font-mono text-[10px] tracking-[0.8em] text-gold uppercase">Our Philosophy</span>
+            <h3 className="text-5xl lg:text-7xl font-serif italic font-bold tracking-tighter uppercase leading-none">
+              A Holistic Approach to <br /> <span className="text-gold">Mind, Body, & Spirit.</span>
+            </h3>
+          </header>
+
+          <div className="grid lg:grid-cols-3 gap-16">
+            {CLUB_PILLARS.map(pillar => (
+              <div key={pillar.id} className="space-y-10 group">
+                <div className="space-y-4">
+                  <div className="flex items-baseline gap-4">
+                     <span className="text-xs font-mono text-gold/40">{pillar.title}</span>
+                     <div className="flex-1 h-[1px] bg-white/10 group-hover:bg-gold/30 transition-colors"></div>
+                  </div>
+                  <h4 className="text-4xl font-serif italic font-bold uppercase text-gold">{pillar.subtitle}</h4>
+                </div>
+                <p className="text-xl text-white/50 italic leading-relaxed">{pillar.description}</p>
+                <ul className="space-y-4">
+                  {pillar.bullets.map((bullet, idx) => (
+                    <li key={idx} className="flex items-center gap-4 text-xs font-mono uppercase tracking-widest text-white/30 group-hover:text-white transition-colors">
+                      <span className="w-1.5 h-1.5 bg-red/40 rounded-full"></span>
+                      {bullet}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      <section id="experiences" className="py-40 px-6 lg:px-24 bg-paper">
+        <div className="max-w-7xl mx-auto space-y-24">
+          <header className="flex flex-col lg:flex-row justify-between items-end gap-12 border-b border-obsidian/5 pb-16">
+            <div className="space-y-4">
+              <span className="font-mono text-[10px] tracking-[0.8em] text-gold uppercase">Season Schedule</span>
+              <h3 className="text-6xl lg:text-8xl font-serif italic font-bold tracking-tighter text-obsidian uppercase leading-none">Upcoming <br/><span className="text-gold">Experiences.</span></h3>
+            </div>
+            <p className="text-xl italic text-obsidian/40 max-w-sm">Meticulously curated journeys designed for cultural depth and transformation.</p>
+          </header>
+
+          <div className="space-y-40">
+            {CLUB_EXPERIENCES.map((exp, idx) => (
+              <div key={exp.id} className={`grid lg:grid-cols-2 gap-24 items-center ${idx % 2 !== 0 ? 'lg:flex-row-reverse' : ''}`}>
+                <div className={`space-y-12 ${idx % 2 !== 0 ? 'lg:order-2' : ''}`}>
+                  <div className="flex items-center gap-8">
+                    <div className="passport-stamp text-red border-red opacity-100">{exp.status.toUpperCase()}</div>
+                    <span className="font-mono text-xs text-obsidian/30 uppercase tracking-[0.3em]">{exp.date} • {exp.duration}</span>
+                  </div>
+                  <div className="space-y-6">
+                    <h4 className="text-5xl lg:text-7xl font-serif italic font-bold tracking-tighter text-obsidian uppercase leading-none">{exp.title}</h4>
+                    <p className="text-xl font-mono text-gold uppercase tracking-widest">{exp.location}</p>
+                    <p className="text-2xl text-obsidian/60 italic leading-relaxed">{exp.description}</p>
+                  </div>
+                  <div className="grid grid-cols-2 gap-12">
+                     <div className="space-y-4">
+                        <span className="font-mono text-[10px] text-obsidian/30 uppercase tracking-[0.3em]">Highlights:</span>
+                        <ul className="space-y-2">
+                          {exp.highlights.map((h, i) => (
+                            <li key={i} className="text-xs font-serif italic text-obsidian/50">• {h}</li>
+                          ))}
+                        </ul>
+                     </div>
+                     <div className="space-y-4">
+                        <span className="font-mono text-[10px] text-obsidian/30 uppercase tracking-[0.3em]">Tier_Cost:</span>
+                        <p className="text-3xl font-serif italic font-bold text-obsidian">{exp.price}</p>
+                        <button 
+                          onClick={() => openModal({
+                            title: `Reserve: ${exp.title}`,
+                            subtitle: `Expedition ${exp.date}`,
+                            description: `You are requesting a slot for our ${exp.location} experience. Please provide your contact info for the dispatch of travel prerequisites.`,
+                            buttonText: 'Request Spot',
+                            stampText: 'RESERVE_ACTIVE',
+                            stampColor: 'red'
+                          })}
+                          className="w-full py-4 bg-obsidian text-paper font-mono text-[9px] font-bold uppercase tracking-[0.4em] hover:bg-gold hover:text-obsidian transition-all"
+                        >
+                          Reserve Spot
+                        </button>
+                     </div>
+                  </div>
+                </div>
+                <div className={`aspect-[4/5] bg-obsidian relative overflow-hidden group shadow-2xl ${idx % 2 !== 0 ? 'lg:order-1' : ''}`}>
+                   <img src={exp.image} className="w-full h-full object-cover grayscale opacity-80 group-hover:grayscale-0 group-hover:scale-110 transition-all duration-[6s]" alt={exp.title} />
+                   <div className="absolute inset-0 vignette-heavy"></div>
+                   <div className="absolute top-12 right-12 passport-stamp text-white rotate-12 scale-125">AUTHENTIFIED</div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      <section className="py-40 px-6 lg:px-24 bg-white border-t border-obsidian/5 relative overflow-hidden">
+        <div className="absolute top-0 right-0 p-32 opacity-5 font-serif italic font-bold text-[20vw] pointer-events-none select-none uppercase tracking-tighter text-obsidian">BENEFITS</div>
+        <div className="max-w-7xl mx-auto space-y-24 relative z-10">
+          <header className="space-y-4">
+            <span className="font-mono text-[10px] tracking-[0.8em] text-gold uppercase">The Membership</span>
+            <h3 className="text-6xl font-serif italic font-bold tracking-tighter text-obsidian uppercase">Why Join <span className="text-gold">Our Club.</span></h3>
+            <p className="text-xl italic text-obsidian/40 max-w-xl">Experience Africa like never before with benefits designed for the discerning traveler.</p>
+          </header>
+
+          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-x-16 gap-y-24">
+            {CLUB_BENEFITS.map((benefit, idx) => (
+              <div key={idx} className="space-y-6 group">
+                <div className="flex items-center gap-6">
+                   <span className="font-mono text-2xl text-gold/30">0{idx + 1}</span>
+                   <div className="flex-1 h-[1px] bg-obsidian/5 group-hover:bg-gold/40 transition-colors"></div>
+                </div>
+                <div className="space-y-2">
+                  <h4 className="text-2xl font-serif italic font-bold text-obsidian uppercase">{benefit.title}</h4>
+                  <p className="text-obsidian/50 italic leading-relaxed">{benefit.description}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+          
+          <div className="pt-24 text-center">
+             <button 
+               onClick={() => openModal({
+                 title: 'Elite Membership Application',
+                 subtitle: 'Bantu Ants Travel Club',
+                 description: 'Join a global network of cultural custodians. Provide your details below and a club ambassador will reach out with the full dossier.',
+                 buttonText: 'Apply Now',
+                 stampText: 'ENROLLMENT_OPEN',
+                 stampColor: 'gold'
+               })}
+               className="btn-travel bg-obsidian text-paper hover:bg-gold hover:text-obsidian text-lg px-20"
+             >
+               Submit Membership Application
+             </button>
+             <p className="mt-8 font-mono text-[8px] text-obsidian/30 uppercase tracking-[0.5em]">Selective Enrollment_Q4 2088 Cycle</p>
+          </div>
+        </div>
+      </section>
+
+      {/* Small Projects Section */}
+      <section className="py-40 px-6 lg:px-24 bg-paper border-t border-obsidian/5 overflow-hidden">
+        <div className="max-w-7xl mx-auto space-y-24">
+          <header className="space-y-4">
+             <div className="passport-stamp text-gold border-gold opacity-60 scale-75 origin-left">THE_VAULT</div>
+             <h3 className="text-6xl font-serif italic font-bold tracking-tighter text-obsidian uppercase">Ventures in <span className="text-gold">Development.</span></h3>
+             <p className="text-xl italic text-obsidian/40 max-w-xl">Experimental ventures and satellite initiatives we are building with the Bantu Ants community.</p>
+          </header>
+
+          <div className="grid md:grid-cols-3 gap-12">
+            {SMALL_PROJECTS.map(project => (
+              <SmallProjectCard key={project.id} project={project} />
+            ))}
+          </div>
+        </div>
+      </section>
+    </div>
+  );
+
+  const renderAnimation = () => (
+    <div className="animate-fade-up bg-paper">
+      {/* Hero Section */}
+      <header className="relative min-h-screen w-full flex items-center justify-center overflow-hidden bg-obsidian text-paper">
+        <div className="absolute inset-0 z-0">
+          <img 
+            src="https://images.unsplash.com/photo-1478760329108-5c3ed9d495a0?auto=format&fit=crop&q=80&w=2000" 
+            className="w-full h-full object-cover opacity-20"
+            alt="Animation Background"
+          />
+          <div className="absolute inset-0 bg-gradient-to-b from-obsidian via-transparent to-obsidian"></div>
+        </div>
+        
+        <div className="relative z-10 text-center max-w-5xl px-6 space-y-8 py-32">
+          <span className="font-mono text-[9px] tracking-[0.8em] text-gold uppercase">🎬 Afrofuturist Animation Series</span>
+          <h1 className="text-6xl lg:text-8xl font-serif italic font-bold text-paper leading-[0.9] tracking-tighter uppercase">
+            The Bantu Ants <br />
+            <span className="text-gold">Universe</span>
+          </h1>
+          <p className="text-2xl lg:text-3xl font-serif italic text-paper/80 leading-relaxed font-light">
+            Where folklore meets the future
+          </p>
+          <p className="text-lg lg:text-xl text-paper/60 max-w-3xl mx-auto leading-relaxed">
+            An Afrofuturist animated saga that weaves together ancient wisdom and tomorrow's possibilities. Follow our heroes as they navigate worlds where tradition and technology dance in harmony, and every story holds the power to reshape destiny.
+          </p>
+          <div className="flex justify-center gap-6 pt-8">
+            <button className="px-10 py-5 bg-gold text-obsidian font-mono text-[10px] font-bold uppercase tracking-[0.4em] hover:bg-paper hover:text-obsidian transition-all">
+              Watch Teaser
+            </button>
+            <button 
+              onClick={() => openModal({
+                title: 'Get Series Updates',
+                subtitle: 'Stay Connected',
+                description: 'Be the first to know when new episodes drop, behind-the-scenes content is released, and exclusive events are announced.',
+                buttonText: 'Subscribe',
+                stampText: 'UPDATE_FEED',
+                stampColor: 'gold'
+              })}
+              className="px-10 py-5 border-2 border-paper text-paper font-mono text-[10px] font-bold uppercase tracking-[0.4em] hover:bg-paper hover:text-obsidian transition-all"
+            >
+              Get Updates
+            </button>
+          </div>
+        </div>
+      </header>
+
+      {/* The Story Section */}
+      <section className="py-32 px-6 lg:px-24 max-w-5xl mx-auto space-y-12">
+        <header className="space-y-6 text-center">
+          <h2 className="text-5xl lg:text-6xl font-serif italic font-bold tracking-tighter text-obsidian uppercase">The <span className="text-gold">Story</span></h2>
+        </header>
+        <p className="text-xl lg:text-2xl text-obsidian/70 leading-relaxed font-serif italic text-center">
+          In the year 2088, beneath a world ruled by the devouring Locust Empire, a forgotten nation of Bantu Ants fights to reclaim its buried history. When a rebellious miner named Kamau uncovers a message from a vanished Queen, he and his crew are thrust into a time-bending struggle that links the kingdom's past and future. Part political satire, part Afrofuturist odyssey, Bantu Ants Travel Club unearths the truth about power, identity, and memory — proving that even underground, revolution finds a way to rise.
+        </p>
+      </section>
+
+      {/* Key Features */}
+      <section className="py-32 px-6 lg:px-24 bg-white border-y border-obsidian/5">
+        <div className="max-w-7xl mx-auto grid md:grid-cols-3 gap-12">
+          <div className="space-y-6 p-10 border border-obsidian/10 hover:border-gold transition-colors text-center">
+            <span className="text-5xl">🌍</span>
+            <h3 className="text-2xl font-serif italic font-bold uppercase text-obsidian">Afrofuturism</h3>
+            <p className="text-obsidian/60 leading-relaxed italic">Blending African history, mythology, and cutting-edge sci-fi imagination</p>
+          </div>
+          <div className="space-y-6 p-10 border border-obsidian/10 hover:border-gold transition-colors text-center">
+            <span className="text-5xl">📖</span>
+            <h3 className="text-2xl font-serif italic font-bold uppercase text-obsidian">Epic Storytelling</h3>
+            <p className="text-obsidian/60 leading-relaxed italic">Multi-layered narratives spanning centuries and dimensions</p>
+          </div>
+          <div className="space-y-6 p-10 border border-obsidian/10 hover:border-gold transition-colors text-center">
+            <span className="text-5xl">🎓</span>
+            <h3 className="text-2xl font-serif italic font-bold uppercase text-obsidian">Cultural Education</h3>
+            <p className="text-obsidian/60 leading-relaxed italic">Each episode explores real African history and traditions</p>
+          </div>
+        </div>
+      </section>
+
+      {/* Meet the Characters */}
+      <section className="py-40 px-6 lg:px-24 bg-paper">
+        <div className="max-w-[1800px] mx-auto space-y-24">
+          <header className="text-center space-y-4">
+            <h3 className="text-6xl font-serif italic font-bold tracking-tighter text-obsidian uppercase">Meet the <span className="text-gold">Characters</span></h3>
+            <p className="text-xl italic text-obsidian/40 max-w-2xl mx-auto">Discover the heroes and legends of The Bantu Ants Universe</p>
+          </header>
+
+          <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-1">
+            {CHARACTERS.map(char => (
+              <CharacterCard key={char.id} char={char} />
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* Featured Character Deep Dive */}
+      <section className="py-32 px-6 lg:px-24 bg-obsidian text-paper">
+        <div className="max-w-7xl mx-auto grid lg:grid-cols-2 gap-24 items-center">
+          <div className="aspect-[3/4] overflow-hidden bg-paper/10 border border-gold/20">
+            <img 
+              src={CHARACTERS[0]?.image || "https://images.unsplash.com/photo-1547949003-9792a18a2601?auto=format&fit=crop&q=80&w=1200"} 
+              className="w-full h-full object-contain" 
+              alt="Kamau the Miner"
+            />
+          </div>
+          <div className="space-y-10">
+            <div className="space-y-4">
+              <div className="passport-stamp text-gold border-gold inline-block">CHARACTER_FILE_01</div>
+              <h3 className="text-5xl lg:text-6xl font-serif italic font-bold tracking-tighter uppercase">🧱 Kamau <span className="text-gold">the Miner</span></h3>
+              <p className="text-2xl font-serif italic text-paper/60">Son of miners, child of revolutionaries</p>
+            </div>
+            <p className="text-lg text-paper/70 leading-relaxed italic">
+              Kamau digs for more than gold. He unearths stories buried by time, reclaiming relics stolen from his ancestors. Guided by visions of the lost Queen, he becomes a bridge between memory and rebellion — a seeker of truth in a fractured world.
+            </p>
+            <div className="space-y-6 border-t border-paper/10 pt-8">
+              <div>
+                <h4 className="font-mono text-[10px] uppercase tracking-[0.5em] text-gold mb-4">Powers & Abilities</h4>
+                <div className="flex flex-wrap gap-3">
+                  <span className="px-4 py-2 bg-paper/10 border border-gold/30 font-mono text-xs uppercase tracking-wider">Ancestral intuition</span>
+                  <span className="px-4 py-2 bg-paper/10 border border-gold/30 font-mono text-xs uppercase tracking-wider">Strategic foresight</span>
+                  <span className="px-4 py-2 bg-paper/10 border border-gold/30 font-mono text-xs uppercase tracking-wider">Kwanzite resonance</span>
+                </div>
+              </div>
+              <div>
+                <h4 className="font-mono text-[10px] uppercase tracking-[0.5em] text-gold mb-3">Personality</h4>
+                <p className="text-paper/60 italic">Calm, observant, quietly defiant</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Behind the Scenes */}
+      <section className="py-40 px-6 lg:px-24 bg-paper border-t border-obsidian/5">
+        <div className="max-w-7xl mx-auto space-y-32">
+          <header className="text-center space-y-4">
+            <span className="font-mono text-[10px] tracking-[0.8em] text-gold uppercase">🎨 Behind the Scenes</span>
+            <h2 className="text-5xl lg:text-7xl font-serif italic font-bold tracking-tighter text-obsidian uppercase">Creating the <span className="text-gold">Universe</span></h2>
+            <p className="text-xl italic text-obsidian/50 max-w-2xl mx-auto">Take a peek into our creative process as we bring the Kwanzite Chronicles to life</p>
+          </header>
+
+          <div className="grid md:grid-cols-2 gap-16">
+            {PRODUCTION_INSIGHTS.map(insight => (
+              <div key={insight.id} className="group space-y-8">
+                <div className="aspect-video overflow-hidden bg-obsidian/5 border border-obsidian/10">
+                  <img 
+                    src={insight.image} 
+                    className="w-full h-full object-cover grayscale group-hover:grayscale-0 transition-all duration-700 group-hover:scale-110" 
+                    alt={insight.title} 
+                  />
+                </div>
+                <div className="space-y-4">
+                  <h3 className="text-3xl font-serif italic font-bold uppercase text-obsidian">{insight.title}</h3>
+                  <p className="text-lg text-obsidian/60 italic leading-relaxed">{insight.description}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* Production Timeline */}
+      <section className="py-40 px-6 lg:px-24 bg-obsidian text-paper">
+        <div className="max-w-7xl mx-auto space-y-24">
+          <header className="text-center space-y-4">
+            <span className="font-mono text-[10px] tracking-[0.8em] text-gold uppercase">Production Timeline</span>
+            <h2 className="text-5xl lg:text-7xl font-serif italic font-bold tracking-tighter uppercase">The <span className="text-gold">Journey</span></h2>
+          </header>
+
+          <div className="grid md:grid-cols-3 gap-12">
+            <div className="space-y-8 border border-paper/10 p-10">
+              <div className="space-y-2">
+                <h3 className="text-3xl font-serif italic font-bold text-gold">Phase 1: Development</h3>
+                <span className="inline-block px-4 py-1 bg-gold/20 border border-gold font-mono text-xs uppercase tracking-wider text-gold">In Progress</span>
+              </div>
+              <ul className="space-y-3">
+                <li className="flex items-start gap-3">
+                  <span className="text-gold mt-1">✓</span>
+                  <span className="text-paper/70">Character Design & Concept Art</span>
+                </li>
+                <li className="flex items-start gap-3">
+                  <span className="text-gold mt-1">✓</span>
+                  <span className="text-paper/70">Story Bible & World Building</span>
+                </li>
+                <li className="flex items-start gap-3">
+                  <span className="text-gold mt-1">✓</span>
+                  <span className="text-paper/70">Pilot Script</span>
+                </li>
+                <li className="flex items-start gap-3">
+                  <span className="text-paper/30 mt-1">○</span>
+                  <span className="text-paper/50">Voice Actor Casting</span>
+                </li>
+              </ul>
+            </div>
+
+            <div className="space-y-8 border border-paper/10 p-10">
+              <div className="space-y-2">
+                <h3 className="text-3xl font-serif italic font-bold text-paper">Phase 2: Production</h3>
+                <span className="inline-block px-4 py-1 bg-paper/10 border border-paper/30 font-mono text-xs uppercase tracking-wider text-paper/50">Upcoming</span>
+              </div>
+              <ul className="space-y-3">
+                <li className="flex items-start gap-3">
+                  <span className="text-paper/30 mt-1">○</span>
+                  <span className="text-paper/50">Storyboarding</span>
+                </li>
+                <li className="flex items-start gap-3">
+                  <span className="text-paper/30 mt-1">○</span>
+                  <span className="text-paper/50">Animation Production</span>
+                </li>
+                <li className="flex items-start gap-3">
+                  <span className="text-paper/30 mt-1">○</span>
+                  <span className="text-paper/50">Music & Sound Design</span>
+                </li>
+                <li className="flex items-start gap-3">
+                  <span className="text-paper/30 mt-1">○</span>
+                  <span className="text-paper/50">Voice Recording</span>
+                </li>
+              </ul>
+            </div>
+
+            <div className="space-y-8 border border-paper/10 p-10">
+              <div className="space-y-2">
+                <h3 className="text-3xl font-serif italic font-bold text-paper">Phase 3: Launch</h3>
+                <span className="inline-block px-4 py-1 bg-paper/10 border border-paper/30 font-mono text-xs uppercase tracking-wider text-paper/50">2026</span>
+              </div>
+              <ul className="space-y-3">
+                <li className="flex items-start gap-3">
+                  <span className="text-paper/30 mt-1">○</span>
+                  <span className="text-paper/50">Pilot Episode Release</span>
+                </li>
+                <li className="flex items-start gap-3">
+                  <span className="text-paper/30 mt-1">○</span>
+                  <span className="text-paper/50">Season 1 (6 Episodes)</span>
+                </li>
+                <li className="flex items-start gap-3">
+                  <span className="text-paper/30 mt-1">○</span>
+                  <span className="text-paper/50">Community Events</span>
+                </li>
+                <li className="flex items-start gap-3">
+                  <span className="text-paper/30 mt-1">○</span>
+                  <span className="text-paper/50">Merchandise Launch</span>
+                </li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Season One Episodes */}
+      <section className="py-40 px-6 lg:px-24 bg-paper border-t border-obsidian/5">
+        <div className="max-w-7xl mx-auto space-y-24">
+          <header className="space-y-4">
+            <span className="font-mono text-[10px] tracking-[0.8em] text-gold uppercase">Narrative Path</span>
+            <h3 className="text-6xl font-serif italic font-bold tracking-tighter text-obsidian uppercase leading-none">Season One <br/><span className="text-gold">Episodes.</span></h3>
+          </header>
+
+          <div className="space-y-16">
+            {SEASON_ONE_EPISODES.map((ep, idx) => (
+              <div key={ep.id} className="grid md:grid-cols-[100px_1fr] gap-12 items-center group cursor-pointer border-b border-obsidian/5 pb-12 last:border-0">
+                <span className="font-serif italic font-bold text-5xl text-gold/30 group-hover:text-gold transition-colors">0{idx + 1}</span>
+                <div className="space-y-4">
+                  <h4 className="text-4xl font-serif italic font-bold uppercase tracking-tighter text-obsidian">{ep.title}</h4>
+                  <p className="text-xl text-obsidian/40 italic font-light max-w-3xl leading-relaxed">{ep.summary}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* Historical Trails */}
+      <section className="py-40 px-6 lg:px-24 bg-white border-t border-obsidian/5">
+        <div className="max-w-7xl mx-auto space-y-32">
+          <div className="grid lg:grid-cols-2 gap-24 items-center">
+             <div className="space-y-12">
+                <div className="passport-stamp text-gold border-gold">RESEARCH_ARCHIVE</div>
+                <h3 className="text-6xl font-serif italic font-bold tracking-tighter text-obsidian uppercase">Historical <span className="text-gold">Trails.</span></h3>
+                <p className="text-xl italic text-obsidian/60 leading-relaxed">
+                  Every character and location in Bantu Ants is rooted in real-world African research. We map fiction onto history to ensure our future is grounded in truth.
+                </p>
+                <div className="space-y-8">
+                  {HISTORICAL_TRAILS.map(trail => (
+                    <div key={trail.id} className="border-l-2 border-gold pl-8 space-y-2">
+                       <span className="font-mono text-[10px] text-gold uppercase tracking-[0.5em]">{trail.location}</span>
+                       <h4 className="text-2xl font-serif italic font-bold text-obsidian">{trail.subject} → {trail.fictionLink}</h4>
+                       <p className="text-obsidian/40 italic text-sm">{trail.realityRoot}</p>
+                    </div>
+                  ))}
+                </div>
+             </div>
+             <div className="relative aspect-[4/5] bg-obsidian">
+                <img src="https://images.unsplash.com/photo-1516026672322-bc52d61a55d5?auto=format&fit=crop&q=80&w=1200" className="w-full h-full object-cover grayscale opacity-80" alt="African Research" />
+                <div className="absolute inset-0 vignette-heavy"></div>
+                <div className="absolute top-12 right-12 passport-stamp text-white rotate-12 scale-125">AUTHENTIFIED</div>
+             </div>
+          </div>
+        </div>
+      </section>
+    </div>
+  );
+
+  const renderHome = () => (
+    <div className="animate-fade-up">
+      <header className="relative h-screen w-full flex items-center justify-center overflow-hidden bg-paper -mt-8">
+        subtitle="In 2088, the servers went dark. The Great Digital Blackout erased the world’s history, leaving Africa’s future to be navigated by the Bantu Ants."
+        prompt="A massive cinematic wide shot of the Great Rift in East Africa, year 2088. Giant floating stone obelisks etched with glowing golden circuitry, nomadic caravans of high-tech scavengers, dramatic red desert lighting, 8k resolution."
+        fallbackImage="https://images.unsplash.com/photo-1478760329108-5c3ed9d495a0?auto=format&fit=crop&q=80&w=2000"
+      />
+
+      <section className="py-24 px-6 lg:px-24 max-w-7xl mx-auto space-y-16">
+        <header className="space-y-6">
+          <div className="passport-stamp text-red border-red">MISSION_CORE_FILE</div>
+          <p className="text-2xl lg:text-4xl italic text-obsidian/60 max-w-4xl font-light leading-tight">
+            Explore the Series Bible, character dossiers, and production insights of the Bantu Ants saga.
+          </p>
+        </header>
+      </section>
+
+      <section className="py-32 px-6 lg:px-24 bg-obsidian text-paper">
+        <div className="max-w-7xl mx-auto space-y-24">
+          <header className="space-y-4">
+            <span className="font-mono text-[10px] tracking-[0.8em] text-gold uppercase">Operational Logic</span>
+            <h3 className="text-5xl lg:text-7xl font-serif italic font-bold tracking-tighter uppercase">The Series <span className="text-gold">Bible.</span></h3>
+          </header>
+
+          <div className="grid md:grid-cols-3 gap-12">
+            {LORE_PILLARS.map(pillar => (
+              <div key={pillar.id} className="space-y-6 p-10 border border-white/10 hover:border-gold transition-colors">
+                <span className="text-4xl">{pillar.icon}</span>
+                <h4 className="text-2xl font-serif italic font-bold uppercase">{pillar.title}</h4>
+                <p className="text-white/50 leading-relaxed italic">{pillar.content}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      <section className="py-40 px-6 lg:px-24 bg-paper">
+        <div className="max-w-7xl mx-auto space-y-24">
+          <header className="space-y-4">
+            <div className="passport-stamp text-gold border-gold">TERRITORY_REPORT</div>
+            <h3 className="text-6xl font-serif italic font-bold tracking-tighter text-obsidian uppercase leading-none">The World <br/><span className="text-gold">of 2088.</span></h3>
+          </header>
+
+          <div className="grid md:grid-cols-3 gap-8">
+            {LOCATIONS.map(loc => (
+              <div key={loc.id} className="group cursor-pointer space-y-6">
+                <div className="aspect-[4/5] overflow-hidden bg-obsidian/5 border border-obsidian/10">
+                  <img src={loc.image} className="w-full h-full object-cover grayscale group-hover:grayscale-0 transition-all duration-700" alt={loc.name} />
+                </div>
+                <div className="space-y-2">
+                  <span className="font-mono text-[10px] text-obsidian/30 uppercase tracking-[0.3em]">{loc.coordinates}</span>
+                  <h4 className="text-2xl font-serif italic font-bold text-obsidian uppercase">{loc.name}</h4>
+                  <p className="text-sm text-obsidian/60 italic leading-relaxed">{loc.description}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      <section className="py-40 px-6 lg:px-24 bg-white border-t border-b border-obsidian/5">
+        <div className="max-w-7xl mx-auto grid lg:grid-cols-2 gap-24 items-center">
+          <div className="space-y-16">
+            <div className="space-y-6">
+              <span className="font-mono text-[10px] tracking-[0.8em] text-gold uppercase">Gear & Logic</span>
+              <h3 className="text-7xl font-serif italic font-bold tracking-tighter text-obsidian uppercase leading-none">Relic <span className="text-red">Tech.</span></h3>
+              <p className="text-xl italic text-obsidian/50 max-w-lg">Advanced technology built on ancient principles. In a world without the Cloud, the hardware must be tangible.</p>
+            </div>
+            <div className="space-y-10">
+              {TECH_GEAR.map(tech => (
+                <div key={tech.id} className="flex gap-8 items-start group">
+                  <div className="w-16 h-16 bg-obsidian text-gold flex items-center justify-center text-3xl shrink-0 group-hover:scale-110 transition-transform">
+                    {tech.icon}
+                  </div>
+                  <div className="space-y-1">
+                    <h4 className="text-2xl font-serif italic font-bold text-obsidian uppercase">{tech.name}</h4>
+                    <p className="text-obsidian/40 italic">{tech.description}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+          <div className="relative">
+            <div className="aspect-[3/4] bg-obsidian relative overflow-hidden">
+               <img src="https://images.unsplash.com/photo-1518770660439-4636190af475?auto=format&fit=crop&q=80&w=1200" className="w-full h-full object-cover opacity-30" alt="Tech Prototype" />
+               <div className="absolute inset-0 flex items-center justify-center p-12">
+                 <div className="border border-white/20 p-8 text-center space-y-4">
+                    <span className="font-mono text-[8px] text-white/40 uppercase tracking-[0.5em]">Schematic_View: v2.08</span>
+                    <div className="w-full h-[1px] bg-gold/50"></div>
+                    <p className="text-xs text-white/60 font-mono italic">"The signal isn't just data, it's destiny."</p>
+                 </div>
+               </div>
+            </div>
+            <div className="absolute -bottom-10 -right-10 passport-stamp text-red rotate-3 scale-150">CONFIDENTIAL</div>
+          </div>
+        </div>
+      </section>
+
+      <section className="py-40 px-6 lg:px-24 bg-paper">
+        <div className="max-w-[1800px] mx-auto space-y-24">
+          <header className="text-center space-y-4">
+            <h3 className="text-6xl font-serif italic font-bold tracking-tighter text-obsidian uppercase">Season One <span className="text-red">Icons.</span></h3>
+            <p className="text-xl italic text-obsidian/40 max-w-xl mx-auto">The heroes leading the charge into the Rift.</p>
+          </header>
+
+          <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-1">
+            {CHARACTERS.map(char => (
+              <CharacterCard key={char.id} char={char} />
+            ))}
+          </div>
+        </div>
+      </section>
+
+      <section className="py-40 px-6 lg:px-24 bg-obsidian text-paper overflow-hidden relative">
+        <div className="chapter-number">S_01</div>
+        <div className="max-w-7xl mx-auto relative z-10 space-y-24">
+          <header className="space-y-4">
+            <span className="font-mono text-[10px] tracking-[0.8em] text-gold uppercase">Narrative Path</span>
+            <h3 className="text-6xl font-serif italic font-bold tracking-tighter uppercase leading-none">Season One <br/><span className="text-gold">Episodes.</span></h3>
+          </header>
+
+          <div className="space-y-16">
+            {SEASON_ONE_EPISODES.map((ep, idx) => (
+              <div key={ep.id} className="grid md:grid-cols-[100px_1fr] gap-12 items-center group cursor-pointer border-b border-white/5 pb-12 last:border-0">
+                <span className="font-serif italic font-bold text-5xl text-gold/30 group-hover:text-gold transition-colors">0{idx + 1}</span>
+                <div className="space-y-4">
+                  <h4 className="text-4xl font-serif italic font-bold uppercase tracking-tighter">{ep.title}</h4>
+                  <p className="text-xl text-white/40 italic font-light max-w-3xl leading-relaxed">{ep.summary}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      <section className="py-40 px-6 lg:px-24 bg-paper border-t border-obsidian/5">
+        <div className="max-w-7xl mx-auto space-y-32">
+          <div className="grid lg:grid-cols-2 gap-24 items-center">
+             <div className="space-y-12">
+                <div className="passport-stamp text-gold border-gold">RESEARCH_ARCHIVE</div>
+                <h3 className="text-6xl font-serif italic font-bold tracking-tighter text-obsidian uppercase">Historical <span className="text-gold">Trails.</span></h3>
+                <p className="text-xl italic text-obsidian/60 leading-relaxed">
+                  Every character and location in Bantu Ants is rooted in real-world African research. We map fiction onto history to ensure our future is grounded in truth.
+                </p>
+                <div className="space-y-8">
+                  {HISTORICAL_TRAILS.map(trail => (
+                    <div key={trail.id} className="border-l-2 border-gold pl-8 space-y-2">
+                       <span className="font-mono text-[10px] text-gold uppercase tracking-[0.5em]">{trail.location}</span>
+                       <h4 className="text-2xl font-serif italic font-bold text-obsidian">{trail.subject} → {trail.fictionLink}</h4>
+                       <p className="text-obsidian/40 italic text-sm">{trail.realityRoot}</p>
+                    </div>
+                  ))}
+                </div>
+             </div>
+             <div className="relative aspect-[4/5] bg-obsidian">
+                <img src="https://images.unsplash.com/photo-1516026672322-bc52d61a55d5?auto=format&fit=crop&q=80&w=1200" className="w-full h-full object-cover grayscale opacity-80" alt="African Research" />
+                <div className="absolute inset-0 vignette-heavy"></div>
+                <div className="absolute top-12 right-12 passport-stamp text-white rotate-12 scale-125">AUTHENTIFIED</div>
+             </div>
+          </div>
+        </div>
+      </section>
+
+      <section className="py-40 px-6 lg:px-24 bg-obsidian text-paper">
+        <div className="max-w-7xl mx-auto space-y-24">
+           <header className="space-y-4">
+              <span className="font-mono text-[10px] tracking-[0.8em] text-gold uppercase">Production Briefing</span>
+              <h3 className="text-5xl lg:text-7xl font-serif italic font-bold tracking-tighter uppercase text-center">The Making of <span className="text-red">The Rift.</span></h3>
+           </header>
+           
+           <div className="grid md:grid-cols-2 gap-12">
+              {PRODUCTION_INSIGHTS.map(insight => (
+                <div key={insight.id} className="group cursor-pointer space-y-8">
+                  <div className="aspect-video overflow-hidden grayscale group-hover:grayscale-0 transition-all duration-700">
+                    <img src={insight.image} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-[5s]" alt={insight.title} />
+                  </div>
+                  <div className="space-y-4">
+                    <h4 className="text-3xl font-serif italic font-bold uppercase text-gold">{insight.title}</h4>
+                    <p className="text-white/40 italic leading-relaxed text-lg">{insight.description}</p>
+                  </div>
+                </div>
+              ))}
+           </div>
+        </div>
+      </section>
+    </div>
+  );
+
+  const renderHome = () => (
+    <div className="animate-fade-up">
+      <header className="relative h-screen w-full flex items-center justify-center overflow-hidden bg-paper -mt-8">
+        <div className="absolute inset-0 z-0">
+          <img 
+            src="https://images.unsplash.com/photo-1530789253388-582c481c54b0?auto=format&fit=crop&q=80&w=2000" 
+            className="w-full h-full object-cover opacity-10 scale-105"
+            alt="Expedition Hero"
+          />
+          <div className="absolute inset-0 bg-gradient-to-b from-paper via-transparent to-paper"></div>
+        </div>
+        
+        <div className="relative z-10 text-center max-w-5xl px-6 space-y-8">
+          <div className="flex flex-col items-center gap-4">
+            <div className="w-[1px] h-16 bg-gold opacity-50"></div>
+            <span className="font-mono text-[9px] tracking-[0.6em] text-obsidian/60 uppercase">
+              ✨ Where Storytelling Meets Travel & Culture
+            </span>
+          </div>
+          <h1 className="text-[7vw] lg:text-[8vw] font-serif italic font-bold text-obsidian leading-[0.85] tracking-tighter uppercase">
+            Bantu Ants <br />
+            <span className="text-gold">Travel Club</span>
+          </h1>
+          <p className="text-base lg:text-xl font-serif italic text-obsidian/70 max-w-2xl mx-auto leading-relaxed">
+            Experience Africa through Afrofuturist storytelling, immersive travel adventures, and culture-driven fashion. Join us on a journey that bridges heritage and tomorrow.
+          </p>
+          <div className="flex justify-center gap-6 pt-6">
+            <button onClick={() => setCurrentView('club')} className="btn-travel">
+              The Vision
+              <span className="text-gold">→</span>
+            </button>
+            <button 
+              onClick={() => setCurrentView('shop')}
+              className="px-12 py-6 bg-gold text-obsidian font-mono text-[10px] font-bold uppercase tracking-[0.4em] hover:bg-obsidian hover:text-white transition-all"
+            >
+              Fund the Series
+            </button>
+          </div>
+        </div>
+      </header>
+
+      <section id="visionaries" className="py-32 bg-paper border-t border-obsidian/5 relative overflow-hidden">
+        <div className="max-w-7xl mx-auto px-6 lg:px-24 space-y-20 mb-20">
+          <div className="grid lg:grid-cols-2 gap-16 items-start">
+            <header className="space-y-8">
+              <div className="passport-stamp text-gold opacity-60 border-gold scale-90 origin-left uppercase">Origins_Archive</div>
+              <h2 className="text-5xl lg:text-7xl font-serif italic font-bold tracking-tighter text-obsidian uppercase leading-none">
+                A Club Built on <span className="text-gold">Visionaries.</span>
+              </h2>
+              <p className="text-2xl font-serif italic text-obsidian/50 leading-relaxed font-light">
+                Inspired by leaders who imagined a free, unified, and future-facing Africa.
+              </p>
+            </header>
+            <div className="space-y-8 pt-4">
+              <p className="text-xl font-serif italic text-obsidian/60 leading-relaxed">
+                Bantu Ants Travel Club is rooted in African self-determination, imagination, and movement. 
+                Our universe draws inspiration from revolutionary thinkers and builders who challenged colonial systems and dared to imagine something greater.
+              </p>
+              <div className="flex items-center justify-between border-l-2 border-gold pl-8">
+                <p className="text-xl font-serif italic text-obsidian/60 leading-relaxed">
+                  Through allegorical characters and Afrofuturist storytelling, we honor the spirit of leaders like:
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div className="relative group/marquee">
+          <div className="absolute inset-y-0 left-0 w-32 bg-gradient-to-r from-paper to-transparent z-10 pointer-events-none"></div>
+          <div className="absolute inset-y-0 right-0 w-32 bg-gradient-to-l from-paper to-transparent z-10 pointer-events-none"></div>
+          
+          <div className="animate-marquee hover:pause flex items-start gap-2 py-10">
+            {CHARACTERS.map(char => (
+              <div key={char.id} className="w-[14vw] flex-shrink-0">
+                <CharacterCard char={char} />
+              </div>
+            ))}  
+            {CHARACTERS.map(char => (
+              <div key={`${char.id}-dup`} className="w-[14vw] flex-shrink-0">
+                <CharacterCard char={char} />
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      <section className="py-40 px-6 lg:px-24 bg-paper border-t border-obsidian/5">
+        <div className="max-w-7xl mx-auto space-y-32">
+          <header className="space-y-8 max-w-4xl">
+            <span className="font-mono text-[10px] tracking-[0.8em] text-gold uppercase block">The Pillars</span>
+            <h2 className="text-5xl lg:text-7xl font-serif italic font-bold tracking-tighter text-obsidian uppercase leading-[0.85]">
+              Three Ways to <span className="text-gold">Experience.</span>
+            </h2>
+            <p className="text-lg lg:text-2xl italic text-obsidian/50 font-light leading-tight">
+              Connect with African heritage through animation, travel, and fashion.
+            </p>
+          </header>
+
+          <div className="grid md:grid-cols-3 gap-12 lg:gap-16">
+            <div 
+              className="relative group overflow-hidden rounded-xl border border-obsidian/10 bg-gradient-to-br from-obsidian via-obsidian to-black text-paper p-8 flex flex-col gap-6 shadow-2xl cursor-pointer"
+              onClick={() => setCurrentView('animation')}
+            >
+              <div className="absolute -right-6 -top-10 text-[9rem] text-white/5">🎬</div>
+              <div className="flex items-center gap-3">
+                <div className="passport-stamp text-gold border-gold bg-white/10">Watch</div>
+                <span className="font-mono text-[9px] tracking-[0.5em] uppercase text-white/40">Storyworld</span>
+              </div>
+              <div className="space-y-3">
+                <h3 className="text-3xl lg:text-4xl font-serif italic font-bold tracking-tight">Animation Drop</h3>
+                <p className="text-base lg:text-lg text-white/70 leading-relaxed">
+                  Afrofuturist saga where ancient wisdom meets tomorrow's vision. Binge the signal files and dossiers.
+                </p>
+              </div>
+              <div className="flex flex-wrap gap-3 text-[10px] uppercase font-mono tracking-[0.35em] text-white/60">
+                <span className="px-3 py-1 rounded-full bg-white/10 border border-white/10">Pilot 01</span>
+                <span className="px-3 py-1 rounded-full bg-white/10 border border-white/10">Lore Bible</span>
+                <span className="px-3 py-1 rounded-full bg-white/10 border border-white/10">Characters</span>
+              </div>
+              <button className="mt-auto inline-flex items-center justify-between w-full px-5 py-4 bg-gold text-obsidian font-mono text-[10px] font-bold uppercase tracking-[0.5em] transition-transform duration-300 group-hover:-translate-y-0.5">
+                Explore Series <span>→</span>
+              </button>
+            </div>
+
+            <div 
+              className="relative group overflow-hidden rounded-xl border border-obsidian/10 bg-white text-obsidian p-8 flex flex-col gap-6 shadow-xl cursor-pointer"
+              onClick={() => navigateToClubAndScroll()}
+            >
+              <div className="absolute -right-6 -top-10 text-[9rem] text-obsidian/5">🌍</div>
+              <div className="flex items-center gap-3">
+                <div className="passport-stamp text-gold border-gold bg-obsidian/5">Travel</div>
+                <span className="font-mono text-[9px] tracking-[0.5em] uppercase text-obsidian/40">Immersion</span>
+              </div>
+              <div className="space-y-3">
+                <h3 className="text-3xl lg:text-4xl font-serif italic font-bold tracking-tight">Travel Club</h3>
+                <p className="text-base lg:text-lg text-obsidian/70 leading-relaxed">
+                  Immersive journeys across Africa that let you live inside the narrative. Limited seats, hosted by our guides.
+                </p>
+              </div>
+              <div className="flex flex-wrap gap-3 text-[10px] uppercase font-mono tracking-[0.35em] text-obsidian/60">
+                <span className="px-3 py-1 rounded-full bg-obsidian/5 border border-obsidian/10">Expeditions</span>
+                <span className="px-3 py-1 rounded-full bg-obsidian/5 border border-obsidian/10">Passports</span>
+                <span className="px-3 py-1 rounded-full bg-obsidian/5 border border-obsidian/10">Community</span>
+              </div>
+              <button className="mt-auto inline-flex items-center justify-between w-full px-5 py-4 border-2 border-obsidian font-mono text-[10px] font-bold uppercase tracking-[0.5em] transition-transform duration-300 group-hover:-translate-y-0.5">
+                View Trips <span>→</span>
+              </button>
+            </div>
+
+            <div 
+              className="relative group overflow-hidden rounded-xl border border-obsidian/10 bg-gradient-to-br from-obsidian via-[#0f1a1a] to-black text-paper p-8 flex flex-col gap-6 shadow-2xl cursor-pointer"
+              onClick={() => setCurrentView('shop')}
+            >
+              <div className="absolute -right-6 -top-10 text-[9rem] text-white/5">👕</div>
+              <div className="flex items-center gap-3">
+                <div className="passport-stamp text-gold border-gold bg-white/10">Merch</div>
+                <span className="font-mono text-[9px] tracking-[0.5em] uppercase text-white/40">Artifacts</span>
+              </div>
+              <div className="space-y-3">
+                <h3 className="text-3xl lg:text-4xl font-serif italic font-bold tracking-tight">The Collection</h3>
+                <p className="text-base lg:text-lg text-white/70 leading-relaxed">
+                  Curated fashion and gear honoring African heritage. Drops fund the animated pilot and field missions.
+                </p>
+              </div>
+              <div className="flex flex-wrap gap-3 text-[10px] uppercase font-mono tracking-[0.35em] text-white/60">
+                <span className="px-3 py-1 rounded-full bg-white/10 border border-white/10">Limited</span>
+                <span className="px-3 py-1 rounded-full bg-white/10 border border-white/10">Pilot Fund</span>
+                <span className="px-3 py-1 rounded-full bg-white/10 border border-white/10">Capsule</span>
+              </div>
+              <button className="mt-auto inline-flex items-center justify-between w-full px-5 py-4 bg-gold text-obsidian font-mono text-[10px] font-bold uppercase tracking-[0.5em] transition-transform duration-300 group-hover:-translate-y-0.5">
+                Browse Shop <span>→</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section className="py-20 px-6 lg:px-24 bg-paper border-t border-obsidian/5">
+        <div className="max-w-7xl mx-auto relative z-10 grid lg:grid-cols-2 gap-12 items-stretch">
+            {/* Product Card */}
+            <div className="bg-white text-obsidian p-12 lg:p-16 rounded-lg shadow-2xl border border-gold/10 space-y-8 order-2 lg:order-1">
+                <div className="space-y-6">
+                    <div className="space-y-2">
+                        <div className="passport-stamp text-red border-red opacity-100 inline-block">SERIES_FUEL_01</div>
+                        <h3 className="text-5xl lg:text-6xl font-serif italic font-bold leading-tight text-obsidian">The Nomad <span className="text-gold">Fund-Bag.</span></h3>
+                        <div className="mt-2 inline-flex items-center gap-2">
+                          <span className="font-mono text-[9px] uppercase tracking-[0.5em] text-gold">Pre-Order Live</span>
+                          <span className="font-mono text-[8px] uppercase tracking-[0.4em] text-obsidian/40">Ships Q4 2088</span>
+                        </div>
+                    </div>
+                    
+                    <div className="space-y-3">
+                        <p className="text-lg text-obsidian/80 font-bold">
+                            $299 <span className="text-sm text-obsidian/50 line-through">$399</span>
+                        </p>
+                        <p className="text-base italic text-obsidian/60">
+                            Premium embossed leather backpack. Limited edition drop. 100% of profits fund the Bantu Ants animated pilot.
+                        </p>
+                    </div>
+                    
+                    <div className="space-y-3 pt-4 border-t border-obsidian/10">
+                        <h4 className="font-mono text-[10px] uppercase tracking-[0.5em] text-obsidian/50">Features</h4>
+                        <ul className="space-y-2 text-sm text-obsidian/70">
+                            <li className="flex items-start gap-3">
+                                <span className="text-gold mt-1">✓</span>
+                                <span>Hand-stitched signature embossing</span>
+                            </li>
+                            <li className="flex items-start gap-3">
+                                <span className="text-gold mt-1">✓</span>
+                                <span>Water-resistant leather with brass hardware</span>
+                            </li>
+                            <li className="flex items-start gap-3">
+                                <span className="text-gold mt-1">✓</span>
+                                <span>Interior organization pockets</span>
+                            </li>
+                            <li className="flex items-start gap-3">
+                                <span className="text-gold mt-1">✓</span>
+                                <span>Ergonomic straps for extended wear</span>
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+                
+                <div className="space-y-4 pt-6 border-t border-obsidian/10">
+                    <div className="space-y-2">
+                        <label className="font-mono text-[9px] uppercase tracking-[0.4em] text-obsidian/50">Quantity</label>
+                        <input type="number" min="1" defaultValue="1" className="w-20 px-4 py-3 border border-obsidian/10 text-center font-mono focus:border-gold outline-none transition-colors" />
+                    </div>
+                    <button 
+                      onClick={() => openModal({
+                        title: 'Pre-Order Fund-Bag',
+                        subtitle: 'Support the Mission',
+                        description: 'Secure your limited edition Nomad Fund-Bag. This exclusive pre-order directly funds the production of the Bantu Ants animated pilot. Estimated dispatch: Q4 2088.',
+                        buttonText: 'Secure Pre-Order',
+                        stampText: 'PREORDER_OPEN',
+                        stampColor: 'gold'
+                      })}
+                      className="w-full py-5 bg-obsidian text-paper font-mono text-[10px] font-bold uppercase tracking-[0.5em] hover:bg-gold hover:text-obsidian transition-all"
+                    >
+                      Pre-Order Now
+                    </button>
+                    <p className="font-mono text-[8px] text-center text-obsidian/30 uppercase tracking-[0.5em]">Exclusive_Limited_Drop • Free Shipping • Pre-Order</p>
+                </div>
+            </div>
+            
+            {/* Bag Images (Stacked) */}
+            <div className="bg-white rounded-lg shadow-2xl border border-obsidian/10 order-1 lg:order-2 h-full">
+              <div className="flex flex-col h-full gap-4 p-4">
+                <img 
+                  src="/bagpackfront.png" 
+                  className="w-full h-1/2 object-contain" 
+                  alt="Fund-Bag Front"
+                  onError={(e) => { (e.target as HTMLImageElement).src = 'https://images.unsplash.com/photo-1547949003-9792a18a2601?auto=format&fit=crop&q=80&w=1200'; }}
+                />
+                <img 
+                  src="/bagpackback.png" 
+                  className="w-full h-1/2 object-contain" 
+                  alt="Fund-Bag Back"
+                  onError={(e) => { (e.target as HTMLImageElement).src = 'https://images.unsplash.com/photo-1547949003-9792a18a2601?auto=format&fit=crop&q=80&w=1200'; }}
+                />
+              </div>
+            </div>
+        </div>
+      </section>
+    </div>
+  );
+
+  const renderShop = () => {
+    return (
+      <div className="animate-fade-up bg-paper min-h-screen">
+        <ImageGenerator 
+          title={<>The <span className="text-gold">Archive.</span></>}
+          subtitle="A conversation between heritage and the future. High-performance garments and artifacts for the modern nomad."
+          prompt="A high-end Afrofuturist concept store interior. Obsidian floating shelving with glowing kente-patterned garments, robotic loom tailors, golden hour desert light pouring in, cinematic, 8k resolution."
+          fallbackImage="https://images.unsplash.com/photo-1441986300917-64674bd600d8?auto=format&fit=crop&q=80&w=2000"
+        />
+
+        <header className="py-24 px-6 lg:px-24 max-w-7xl mx-auto text-center space-y-12">
+           <div className="space-y-4">
+              <span className="font-mono text-[10px] tracking-[1.5em] text-obsidian/20 uppercase">Autumn / Winter 2088</span>
+           </div>
+           <p className="text-2xl font-light italic text-obsidian/40 max-w-2xl mx-auto leading-relaxed">
+             Every piece is a pledge to narrative freedom. Secure your gear to fund the studio.
+           </p>
+        </header>
+
+        <section className="py-24 px-6 lg:px-24 border-t border-obsidian/5">
+           <div className="max-w-7xl mx-auto space-y-16">
+              <div className="flex items-center gap-12">
+                 <h3 className="text-4xl font-serif italic font-bold uppercase tracking-tighter text-obsidian">Collection: <span className="text-gold">Items</span></h3>
+                 <div className="flex-1 h-[1px] bg-obsidian/5"></div>
+              </div>
+              <div className="grid md:grid-cols-2 lg:grid-cols-2 gap-x-12 gap-y-24">
+                 {PRODUCTS.map(product => (
+                    <ProductCard 
+                      key={product.id} 
+                      product={product} 
+                      onPreOrder={() => openModal({
+                        title: `Pre-Order: ${product.name}`,
+                        subtitle: product.category,
+                        description: `Secure this exclusive artifact. All proceeds support our independent animation efforts. Expected dispatch: Q4 2088.`,
+                        buttonText: 'Secure Pre-Order',
+                        stampText: 'PREORDER_LOGGED',
+                        stampColor: 'gold'
+                      })} 
+                    />
+                 ))}
+              </div>
+           </div>
+        </section>
+      </div>
+    );
+  };
+
+  return (
+    <div className="min-h-screen bg-paper selection:bg-gold selection:text-obsidian overflow-x-hidden">
+      <nav className="fixed top-0 w-full z-[100] bg-paper/90 backdrop-blur-md border-b border-obsidian/5 shadow-sm relative">
+        <div className="px-8 pt-2 flex justify-center">
+          <img
+            src="/batc_logo_blk_tc.png"
+            alt="Bantu Ants Logo"
+            className="h-36 w-auto hover:opacity-80 transition-opacity"
+            onClick={() => setCurrentView('home')}
+          />
+        </div>
+        <div className="px-8 pb-2 relative">
+          <div className="hidden lg:flex gap-10 items-center justify-center">
+            <NavItem view="home" label="Mission" />
+            <NavItem view="animation" label="The Series" />
+            <NavItem view="club" label="The Club" />
+            <NavItem view="shop" label="Shop (Fuel)" />
+            <NavItem view="manifesto" label="Manifesto" />
+          </div>
+        </div>
+      </nav>
+
+      <main>
+        {currentView === 'home' && renderHome()}
+        {currentView === 'manifesto' && renderManifesto()}
+        {currentView === 'shop' && renderShop()}
+        {currentView === 'animation' && renderAnimation()}
+        {currentView === 'club' && renderClub()}
+        {currentView === 'pitch' && renderPitch()}
+      </main>
+
+      <ActionModal 
+        {...modalConfig}
+        onClose={closeModal}
+        onSuccess={handleActionSuccess}
+      />
+
+      <footer className="py-32 px-6 lg:px-24 bg-paper border-t border-obsidian/10 text-center space-y-12">
+         <img
+           src="/batc_logo_blk_tc.png"
+           alt="Bantu Ants Logo"
+           className="h-36 w-auto mx-auto hover:opacity-80 transition-opacity cursor-pointer"
+           onClick={() => setCurrentView('home')}
+         />
+         <h3 className="text-7xl font-serif italic font-bold tracking-tighter text-obsidian">Bantu Ants.</h3>
+         <div className="flex justify-center gap-12 font-mono text-[9px] uppercase tracking-[0.5em] text-obsidian/30">
+            <span>Archive: Rift_01</span>
+            <span>Ref: Vision_2088</span>
+         </div>
+         <div className="pt-6">
+           <button 
+             onClick={() => {
+               if (hasPitchAccess) {
+                 setCurrentView('pitch');
+               } else {
+                 openModal({
+                   title: 'Vision Deck Access',
+                   subtitle: 'Secure Transmission',
+                   description: 'Access to the full Vision Deck requires verified status. For demonstration purposes, provide your name to unlock the deck.',
+                   buttonText: 'Unlock Deck',
+                   stampText: 'VISION_LOCKED',
+                   stampColor: 'red',
+                   onSuccess: () => {
+                     setHasPitchAccess(true);
+                     setCurrentView('pitch');
+                   }
+                 });
+               }
+             }} 
+             className="font-mono text-[9px] font-bold tracking-[0.4em] bg-red text-white px-8 py-4 hover:bg-obsidian hover:text-paper transition-all uppercase shadow-lg"
+           >
+             Vision Deck
+           </button>
+         </div>
+      </footer>
+    </div>
+  );
+};
+
+export default App;

@@ -1,0 +1,7 @@
+{
+  "name": "Bantu Ants | Media & Travel",
+  "description": "A media and travel platform exploring African history and future through animation, storytelling, and curated experiences.",
+  "requestFramePermissions": [
+    "microphone"
+  ]
+}

@@ -1,0 +1,174 @@
+
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Bantu Ants | Traveler's Archive</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=Playfair+Display:ital,wght@0,400;0,700;1,400;1,700&family=JetBrains+Mono:wght@300;400;700&display=swap" rel="stylesheet">
+    <script>
+      tailwind.config = {
+        theme: {
+          extend: {
+            colors: {
+              red: '#B22222',
+              gold: '#D4AF37',
+              green: '#006400',
+              obsidian: '#121212',
+              paper: '#F4F1EA',
+            }
+          }
+        }
+      }
+    </script>
+    <style>
+      :root {
+        --vibrant-red: #B22222;
+        --vibrant-gold: #D4AF37;
+        --vibrant-green: #006400;
+        --deep-obsidian: #121212;
+        --paper: #F4F1EA;
+      }
+      * { scroll-behavior: smooth; cursor: crosshair; }
+      body {
+        font-family: 'Space Grotesk', sans-serif;
+        background-color: var(--paper);
+        color: var(--deep-obsidian);
+        overflow-x: hidden;
+      }
+      .font-serif { font-family: 'Playfair Display', serif; }
+      .font-mono { font-family: 'JetBrains Mono', monospace; }
+      
+      .bg-paper { background-color: var(--paper); }
+      .text-red { color: var(--vibrant-red); }
+      .bg-red { background-color: var(--vibrant-red); }
+      .text-gold { color: var(--vibrant-gold); }
+      .bg-gold { background-color: var(--vibrant-gold); }
+      .text-green { color: var(--vibrant-green); }
+      .bg-obsidian { background-color: var(--deep-obsidian); }
+      .text-obsidian { color: var(--deep-obsidian); }
+      
+      .vignette-heavy {
+        box-shadow: inset 0 0 200px rgba(0,0,0,0.8);
+      }
+      
+      .chapter-number {
+        font-size: 25vw;
+        line-height: 0.8;
+        opacity: 0.03;
+        position: absolute;
+        left: -5vw;
+        top: 0;
+        pointer-events: none;
+        user-select: none;
+      }
+
+      .grain {
+        position: fixed;
+        top: 0; left: 0; width: 100%; height: 100%;
+        background-image: url('https://www.transparenttextures.com/patterns/natural-paper.png');
+        opacity: 0.18;
+        pointer-events: none;
+        z-index: 200;
+      }
+
+      .btn-travel {
+        position: relative;
+        padding: 1.5rem 4rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.6em;
+        font-size: 0.65rem;
+        background: transparent;
+        color: var(--deep-obsidian);
+        border: 1px solid var(--deep-obsidian);
+        transition: all 0.6s cubic-bezier(0.19, 1, 0.22, 1);
+        display: inline-flex;
+        align-items: center;
+        gap: 2rem;
+        border-radius: 2px;
+        clip-path: polygon(0 0, 95% 0, 100% 15%, 100% 100%, 5% 100%, 0 85%);
+      }
+      .btn-travel:hover {
+        background: var(--deep-obsidian);
+        color: var(--paper);
+        padding-left: 5rem;
+        padding-right: 5rem;
+      }
+
+      .passport-stamp {
+        border: 2px solid currentColor;
+        padding: 0.5rem 1rem;
+        border-radius: 4px;
+        display: inline-block;
+        transform: rotate(-12deg);
+        font-family: 'JetBrains Mono', monospace;
+        font-weight: 700;
+        font-size: 0.7rem;
+        letter-spacing: 0.2em;
+        opacity: 0.4;
+        pointer-events: none;
+      }
+
+      .no-scrollbar::-webkit-scrollbar {
+        display: none;
+      }
+      .no-scrollbar {
+        -ms-overflow-style: none;
+        scrollbar-width: none;
+      }
+      .scrollbar-hide {
+        -ms-overflow-style: none;
+        scrollbar-width: none;
+      }
+      .scrollbar-hide::-webkit-scrollbar {
+        display: none;
+      }
+
+      @keyframes marquee {
+        0% { transform: translateX(0); }
+        100% { transform: translateX(-50%); }
+      }
+      .animate-marquee {
+        display: flex;
+        width: max-content;
+        animation: marquee 120s linear infinite;
+      }
+      .animate-marquee:hover {
+        animation-play-state: paused;
+      }
+
+      @keyframes compass-spin {
+        from { transform: rotate(0deg); }
+        to { transform: rotate(360deg); }
+      }
+      .compass-needle {
+        animation: compass-spin 20s linear infinite;
+      }
+
+      ::-webkit-scrollbar { width: 4px; }
+      ::-webkit-scrollbar-track { background: var(--paper); }
+      ::-webkit-scrollbar-thumb { background: var(--deep-obsidian); }
+    </style>
+  <script type="importmap">
+{
+  "imports": {
+    "@google/genai": "https://esm.sh/@google/genai@^1.37.0",
+    "vite": "https://esm.sh/vite@^7.3.1",
+    "@vitejs/plugin-react": "https://esm.sh/@vitejs/plugin-react@^5.1.2",
+    "react-dom/": "https://esm.sh/react-dom@^19.2.3/",
+    "react": "https://esm.sh/react@^19.2.3",
+    "react/": "https://esm.sh/react@^19.2.3/"
+  }
+}
+</script>
+<link rel="stylesheet" href="/index.css">
+</head>
+  <body>
+    <div class="grain"></div>
+    <div id="root"></div>
+    <script type="module" src="/index.tsx"></script>
+  </body>
+</html>
+<!-- redeploy -->
