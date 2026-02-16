@@ -20,16 +20,16 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, onPreOrder, o
   };
 
   return (
-    <div className="space-y-6 animate-fade-up group">
+    <div className="space-y-6 animate-fade-up group h-full">
       {/* Product Image Carousel */}
-      <div 
-        className="aspect-[3/4] overflow-hidden border-0 relative bg-transparent cursor-pointer"
+      <div
+        className="h-64 md:h-72 lg:h-80 overflow-hidden border-0 relative bg-transparent cursor-pointer"
         onClick={onViewDetails}
       >
-        <img 
-          src={productImages[currentImageIndex]} 
-          alt={`${product.name} - Image ${currentImageIndex + 1}`} 
-          className="w-full h-full object-contain transition-opacity duration-300 mix-blend-multiply" 
+        <img
+          src={productImages[currentImageIndex]}
+          alt={`${product.name} - Image ${currentImageIndex + 1}`}
+          className="w-full h-full object-cover transition-opacity duration-300 mix-blend-multiply"
           onError={(e) => {
             (e.target as HTMLImageElement).src = 'https://images.unsplash.com/photo-1547949003-9792a18a2601?auto=format&fit=crop&q=80&w=1200';
           }}

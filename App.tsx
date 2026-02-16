@@ -179,7 +179,10 @@ const App: React.FC = () => {
   useEffect(() => {
     const loadProducts = async () => {
       try {
+        console.log('Starting to fetch Shopify products...');
         const products = await fetchProducts();
+        console.log('Fetched products from API:', products);
+        
         const mappedProducts: Product[] = products.map(p => ({
           id: p.id,
           name: p.title,
@@ -199,6 +202,7 @@ const App: React.FC = () => {
           shopifyVariantId: p.variants[0]?.id,
           shopifyProductId: p.id,
         }));
+        console.log('Mapped products:', mappedProducts);
         setShopifyProducts(mappedProducts);
       } catch (error) {
         console.error('Failed to load Shopify products:', error);
@@ -453,7 +457,7 @@ const App: React.FC = () => {
               We are not waiting for permission to reconnect. We are building the road by walking it, in sync with Africa's boldest project for unity.
             </p>
 
-            <div className="grid md:grid-cols-4 gap-4 max-w-4xl mx-auto pt-8">
+            <div className="grid md:grid-cols-3 gap-4 max-w-4xl mx-auto pt-8">
               {[
                 'Travel with Purpose',
                 'Become a Member',
@@ -720,7 +724,7 @@ const App: React.FC = () => {
             Join an elite community of cultural explorers on immersive journeys through Africa and the Diaspora. Learn from history. Celebrate culture.
           </p>
           <button
-            onClick={() => setIsClubFormOpen(true)}
+            onClick={() => { setIsClubFormOpen(true); setIsCheckoutOpen(false); }}
             className="mt-4 px-8 py-4 bg-obsidian text-paper font-mono text-[10px] font-bold uppercase tracking-[0.4em] rounded hover:bg-gold hover:text-obsidian transition-all shadow-lg"
             aria-label="Join Club"
           >
@@ -734,7 +738,7 @@ const App: React.FC = () => {
           <div className="passport-stamp text-gold border-gold">MEMBERS_ONLY</div>
           <div className="flex flex-wrap gap-6 pt-8">
             <button 
-              onClick={() => setIsClubFormOpen(true)}
+              onClick={() => { setIsClubFormOpen(true); setIsCheckoutOpen(false); }}
               className="btn-travel bg-obsidian text-paper hover:bg-gold hover:text-obsidian"
             >
               Join Club
@@ -866,7 +870,7 @@ const App: React.FC = () => {
           
           <div className="pt-24 text-center">
             <button
-              onClick={() => setIsClubFormOpen(true)}
+              onClick={() => { setIsClubFormOpen(true); setIsCheckoutOpen(false); }}
               className="btn-travel bg-obsidian text-paper hover:bg-gold hover:text-obsidian text-lg px-20"
             >
               Join the Club
@@ -1345,7 +1349,7 @@ const App: React.FC = () => {
               Fund the Series
             </button>
             <button
-              onClick={() => setIsClubFormOpen(true)}
+              onClick={() => { setIsClubFormOpen(true); setIsCheckoutOpen(false); }}
               className="px-12 py-6 bg-obsidian text-paper font-mono text-[10px] font-bold uppercase tracking-[0.4em] hover:bg-gold hover:text-obsidian transition-all"
             >
               Join the Club
@@ -1513,8 +1517,7 @@ const App: React.FC = () => {
                         <div className="passport-stamp text-red border-red opacity-100 inline-block">SERIES_FUEL_01</div>
                         <h3 className="text-3xl lg:text-4xl font-serif italic font-bold leading-tight text-obsidian">Nomad <span className="text-gold">Travel Backpack.</span></h3>
                         <div className="mt-2 inline-flex items-center gap-2">
-                          <span className="font-mono text-[9px] uppercase tracking-[0.5em] text-gold">Pre-Order Live</span>
-                          <span className="font-mono text-[8px] uppercase tracking-[0.4em] text-obsidian/40">Ships Q2 2026</span>
+                          <span className="font-mono text-[9px] uppercase tracking-[0.5em] text-gold">Available Soon</span>
                         </div>
                     </div>
                     
@@ -1556,9 +1559,9 @@ const App: React.FC = () => {
                         <input type="number" min="1" defaultValue="1" className="w-20 px-4 py-3 border border-obsidian/10 text-center font-mono focus:border-gold outline-none transition-colors" disabled />
                     </div>
                     <div className="w-full py-5 bg-obsidian text-paper font-mono text-[10px] font-bold uppercase tracking-[0.5em] text-center rounded opacity-80 cursor-not-allowed">
-                      Pre-order available Jan 31st
+                      Available Soon
                     </div>
-                    <p className="font-mono text-[8px] text-center text-obsidian/30 uppercase tracking-[0.5em]">Exclusive_Limited_Drop • Free Shipping • Pre-order available Jan 31st</p>
+                    <p className="font-mono text-[8px] text-center text-obsidian/30 uppercase tracking-[0.5em]">Exclusive_Limited_Drop • Free Shipping • Available Soon</p>
                 </div>
             </div>
             
@@ -1689,7 +1692,7 @@ const App: React.FC = () => {
               </p>
             </div>
 
-            <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-8">
+            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
               {/* Main Product */}
               <div className="bg-paper p-8 space-y-6 border-2 border-gold">
                 <div className="aspect-square bg-obsidian/5 flex items-center justify-center">
@@ -1830,7 +1833,7 @@ const App: React.FC = () => {
                 Reserve Your Place in History
               </h2>
               <p className="text-xl text-paper/70 max-w-2xl mx-auto">
-                Limited quantity available. Pre-order available Jan 31st to secure your collector's edition backpack, 
+                Limited quantity available. Available Soon to secure your collector's edition backpack, 
                 immediate bonus items, and lifetime backroom access.
               </p>
             </div>
@@ -1838,13 +1841,14 @@ const App: React.FC = () => {
             <div className="space-y-4">
               <button
                 onClick={() => {
-                  addToCart(backpack, 1);
-                  setIsCheckoutOpen(true);
-                }}
+                    addToCart(backpack, 1);
+                    setIsCheckoutOpen(true);
+                    setIsClubFormOpen(false);
+                  }}
                 className="px-16 py-6 bg-gold text-obsidian font-sans text-base font-bold uppercase tracking-wider transition-all text-center inline-block opacity-60 cursor-not-allowed"
                 disabled
               >
-                Pre-order available Jan 31st • $299
+                Available Soon • $299
               </button>
               <p className="text-sm text-paper/40">
                 T-shirt & bucket hat ship immediately • Backpack ships Q2 2026
@@ -1904,6 +1908,12 @@ const App: React.FC = () => {
 
         <section className="py-24 px-6 lg:px-24 border-t border-obsidian/5">
            <div className="max-w-7xl mx-auto space-y-16">
+             {/* Error message for Shopify products */}
+             {(!isLoadingProducts && shopifyProducts.length === 0) && (
+               <div className="bg-red-100 text-red-700 p-4 rounded mb-8 text-center">
+                 No Shopify products found. Please check your Storefront API token, product availability, and console for errors.
+               </div>
+             )}
               <div className="flex items-center gap-12">
                  <h3 className="text-4xl font-serif italic font-bold uppercase tracking-tighter text-obsidian">Collection: <span className="text-gold">Items</span></h3>
                  <div className="flex-1 h-[1px] bg-obsidian/5"></div>
@@ -1915,7 +1925,7 @@ const App: React.FC = () => {
               ) : (
               <>
                 {/* First Row of Products */}
-                <div className="grid md:grid-cols-3 lg:grid-cols-4 gap-x-8 gap-y-16">
+                <div className="grid md:grid-cols-3 lg:grid-cols-3 gap-x-8 gap-y-16">
                   {allProducts.filter(p => p.id !== 'pack-01').slice(0, 4).map(product => (
                     <div key={product.id}>
                       <ProductCard 
@@ -1954,7 +1964,7 @@ const App: React.FC = () => {
                         <div className="space-y-6">
                           <div className="space-y-3">
                             <span className="inline-block px-3 py-1.5 bg-gold/20 border border-gold text-gold font-mono text-[9px] tracking-[0.4em] uppercase">
-                              Pre-Order • Q2 2026
+                              Pre-Order • Available Soon
                             </span>
                             <h2 className="text-3xl lg:text-4xl font-serif italic font-bold text-obsidian">
                               Nomad Travel Backpack
@@ -1995,7 +2005,7 @@ const App: React.FC = () => {
                               className="flex-1 py-4 border-2 border-gold text-gold font-sans text-xs font-semibold uppercase tracking-wider opacity-60 cursor-not-allowed"
                               disabled
                             >
-                              Pre-order available Jan 31st
+                              Available Soon
                             </button>
                           </div>
                         </div>
@@ -2006,7 +2016,7 @@ const App: React.FC = () => {
 
                 {/* Remaining Products */}
                 {allProducts.filter(p => p.id !== 'pack-01').length > 4 && (
-                  <div className="grid md:grid-cols-3 lg:grid-cols-4 gap-x-8 gap-y-16">
+                  <div className="grid md:grid-cols-3 lg:grid-cols-3 gap-x-8 gap-y-16">
                     {allProducts.filter(p => p.id !== 'pack-01').slice(4).map(product => (
                       <div key={product.id}>
                         <ProductCard 
@@ -2066,8 +2076,8 @@ const App: React.FC = () => {
             <NavItem view="manifesto" label="Manifesto" />
             
             {/* Cart Icon */}
-            <button
-              onClick={() => setIsCheckoutOpen(true)}
+              <button
+                onClick={() => { setIsCheckoutOpen(true); setIsClubFormOpen(false); }}
               className="absolute right-0 flex items-center gap-2 px-4 py-2 hover:text-gold transition-colors"
             >
               <svg
@@ -2106,6 +2116,7 @@ const App: React.FC = () => {
               <button
                 onClick={() => {
                   setIsCheckoutOpen(true);
+                  setIsClubFormOpen(false);
                   setIsMobileMenuOpen(false);
                 }}
                 className="flex items-center gap-2 px-6 py-3 border border-obsidian/20 hover:bg-gold/10 transition-colors rounded"
@@ -2175,7 +2186,7 @@ const App: React.FC = () => {
               )}
             </div>
             <button
-              onClick={() => setIsCheckoutOpen(true)}
+              onClick={() => { setIsCheckoutOpen(true); setIsClubFormOpen(false); }}
               className="text-gold hover:text-gold/80 text-xs font-mono uppercase tracking-wider transition-colors whitespace-nowrap"
             >
               View Cart

@@ -40,7 +40,9 @@ const CheckoutModal: React.FC<CheckoutModalProps> = ({ isOpen, onClose, cartItem
       }
       const url = await createCheckout(lineItems);
       if (url && typeof url === 'string' && url.startsWith('http')) {
-        window.location.href = url;
+        onClose();
+        // small delay to ensure modal state updates before navigation
+        setTimeout(() => { window.location.href = url; }, 50);
       } else {
         setError('Unable to create checkout. Please check your product setup and Shopify credentials.');
       }

@@ -370,10 +370,10 @@ export const PRODUCTS: Product[] = [
     name: 'Nomad Travel Backpack',
     price: '$280',
     category: 'Relic_Gear',
-    lore: 'Premium embossed leather backpack with "Bantu Ants Travel Club" insignia. Water-resistant, multi-compartment design. Support the movement. Pre-order ships Q2 2026.',
+    lore: 'Premium embossed leather backpack with "Bantu Ants Travel Club" insignia. Water-resistant, multi-compartment design. Support the movement. Available Soon.',
     image: '/bagpackbat.png',
     images: ['/bagpackbat.png', '/bagad.png'],
-    tags: ['Pre-Order', 'Q2 2026', 'Unisex']
+    tags: ['Pre-Order', 'Available Soon', 'Unisex']
   },
   {
     id: 'tee-01',
