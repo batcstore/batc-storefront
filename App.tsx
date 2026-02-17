@@ -3,6 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { GoogleGenAI } from "@google/genai";
 import { PRODUCTS, CHARACTERS, LORE_PILLARS, HISTORICAL_TRAILS, PRODUCTION_INSIGHTS, LOCATIONS, TECH_GEAR, SEASON_ONE_EPISODES, CLUB_PILLARS, CLUB_EXPERIENCES, CLUB_BENEFITS, SMALL_PROJECTS } from './constants';
 import { ProductCard } from './components/ProductCard';
+import ProductSinglePage from './components/ProductSinglePage';
 import { CharacterCard } from './components/CharacterCard';
 import { SmallProjectCard } from './components/SmallProjectCard';
 import { ActionModal } from './components/ActionModal';
@@ -62,7 +63,7 @@ const ImageGenerator: React.FC<{ prompt: string; fallbackImage: string; title: R
   return (
     <div className="relative w-full h-[75vh] lg:h-[85vh] group overflow-hidden bg-obsidian">
       <img 
-        src="/bagad3.png" 
+        src="/bbatcmodelvenic.jpeg" 
         className={`w-full h-full object-cover transition-all duration-[10s] ${isGenerating ? 'opacity-20 scale-110 blur-sm' : 'opacity-40 group-hover:scale-105'}`}
         alt="Cinematic Hero"
       />
@@ -94,7 +95,19 @@ const ImageGenerator: React.FC<{ prompt: string; fallbackImage: string; title: R
 };
 
 const App: React.FC = () => {
-  const [currentView, setCurrentView] = useState<View>('home');
+  const [currentView, setCurrentView] = useState<View>(() => {
+    // Load current view from localStorage on mount
+    try {
+      const savedView = localStorage.getItem('bantu_currentView');
+      const validViews: View[] = ['home', 'shop', 'club', 'projects', 'manifesto', 'bible', 'productDetail', 'preOrder', 'animation', 'pitch', 'productsingle'];
+      if (savedView && validViews.includes(savedView as View)) {
+        return savedView as View;
+      }
+    } catch (error) {
+      console.error('Error loading view from localStorage:', error);
+    }
+    return 'home';
+  });
   const [hasPitchAccess, setHasPitchAccess] = useState(false);
   const [cartItems, setCartItems] = useState<CartItem[]>(() => {
     // Load cart from localStorage on mount
@@ -122,7 +135,18 @@ const App: React.FC = () => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [shopifyProducts, setShopifyProducts] = useState<Product[]>([]);
   const [isLoadingProducts, setIsLoadingProducts] = useState(true);
-  const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
+  const [selectedProduct, setSelectedProduct] = useState<Product | null>(() => {
+    // Load selected product from localStorage on mount
+    try {
+      const savedProduct = localStorage.getItem('bantu_selectedProduct');
+      if (savedProduct) {
+        return JSON.parse(savedProduct);
+      }
+    } catch (error) {
+      console.error('Error loading selected product from localStorage:', error);
+    }
+    return null;
+  });
   const [mainImageIndex, setMainImageIndex] = useState(0);
   const [modalConfig, setModalConfig] = useState<ModalConfig>({
     isOpen: false,
@@ -159,6 +183,14 @@ const App: React.FC = () => {
       localStorage.removeItem('bantu_cart');
     }
   }, [cartItems]);
+
+  // Save current view and selected product to localStorage whenever they change
+  useEffect(() => {
+    localStorage.setItem('bantu_currentView', currentView);
+    if (currentView === 'productsingle' && selectedProduct) {
+      localStorage.setItem('bantu_selectedProduct', JSON.stringify(selectedProduct));
+    }
+  }, [currentView, selectedProduct]);
 
   // Scroll to top whenever view changes
   useEffect(() => {
@@ -1889,7 +1921,7 @@ const App: React.FC = () => {
 
   const renderShop = () => {
     return (
-      <div className="animate-fade-up bg-paper min-h-screen">
+      <div className="animate-fade-up bg-white min-h-screen">
         <ImageGenerator 
           title={<>The <span className="text-gold">Archive.</span></>}
           subtitle="A conversation between heritage and the future. High-performance garments and artifacts for the modern nomad."
@@ -1925,15 +1957,15 @@ const App: React.FC = () => {
               ) : (
               <>
                 {/* First Row of Products */}
-                <div className="grid md:grid-cols-3 lg:grid-cols-3 gap-x-8 gap-y-16">
-                  {allProducts.filter(p => p.id !== 'pack-01').slice(0, 4).map(product => (
+                <div className="grid md:grid-cols-3 lg:grid-cols-3 gap-x-4 gap-y-16">
+                  {allProducts.filter(p => p.id !== 'pack-01').slice(0, 3).map(product => (
                     <div key={product.id}>
                       <ProductCard 
                         product={product} 
                         onPreOrder={(variant) => {
                           addToCart(product, 1, variant);
                         }}
-                        onViewDetails={() => viewProductDetail(product)}
+                        onViewDetails={(p) => { setSelectedProduct(p); setCurrentView('productsingle'); }}
                       />
                     </div>
                   ))}
@@ -2014,22 +2046,17 @@ const App: React.FC = () => {
                   </div>
                 )}
 
-                {/* Remaining Products */}
-                {allProducts.filter(p => p.id !== 'pack-01').length > 4 && (
-                  <div className="grid md:grid-cols-3 lg:grid-cols-3 gap-x-8 gap-y-16">
-                    {allProducts.filter(p => p.id !== 'pack-01').slice(4).map(product => (
+                {/* Products Below Backpack */}
+                {allProducts.filter(p => p.id !== 'pack-01').length > 3 && (
+                  <div className="grid md:grid-cols-3 lg:grid-cols-3 gap-x-4 gap-y-16">
+                    {allProducts.filter(p => p.id !== 'pack-01').slice(3).map(product => (
                       <div key={product.id}>
                         <ProductCard 
                           product={product} 
                           onPreOrder={(variant) => {
                             addToCart(product, 1, variant);
                           }}
-                          onViewDetails={() => {
-                            // Only show details for backpack
-                            if (product.id === 'pack-01') {
-                              viewProductDetail(product);
-                            }
-                          }}
+                          onViewDetails={(p) => { setSelectedProduct(p); setCurrentView('productsingle'); }}
                         />
                       </div>
                     ))}
@@ -2143,6 +2170,7 @@ const App: React.FC = () => {
       </nav>
 
       <main>
+        {currentView === 'productsingle' && <ProductSinglePage product={selectedProduct} onAddToCart={addToCart} />}
         {currentView === 'home' && renderHome()}
         {currentView === 'manifesto' && renderManifesto()}
         {currentView === 'shop' && renderShop()}

@@ -4,7 +4,7 @@ import { Product, ProductVariant } from '../types';
 interface ProductCardProps {
   product: Product;
   onPreOrder?: (variant?: ProductVariant) => void;
-  onViewDetails?: () => void;
+  onViewDetails?: (product: Product) => void;
 }
 
 export const ProductCard: React.FC<ProductCardProps> = ({ product, onPreOrder, onViewDetails }) => {
@@ -23,13 +23,13 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, onPreOrder, o
     <div className="space-y-6 animate-fade-up group h-full">
       {/* Product Image Carousel */}
       <div
-        className="h-64 md:h-72 lg:h-80 overflow-hidden border-0 relative bg-transparent cursor-pointer"
+        className="w-full aspect-square overflow-hidden border-0 relative bg-transparent cursor-pointer rounded flex items-center justify-center"
         onClick={onViewDetails}
       >
         <img
           src={productImages[currentImageIndex]}
           alt={`${product.name} - Image ${currentImageIndex + 1}`}
-          className="w-full h-full object-cover transition-opacity duration-300 mix-blend-multiply"
+          className="w-full h-full object-contain transition-opacity duration-300"
           onError={(e) => {
             (e.target as HTMLImageElement).src = 'https://images.unsplash.com/photo-1547949003-9792a18a2601?auto=format&fit=crop&q=80&w=1200';
           }}
@@ -83,7 +83,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, onPreOrder, o
       <div className="space-y-4 text-center">
         <h3 
           className="text-base font-sans font-semibold tracking-wide text-obsidian uppercase cursor-pointer hover:text-gold transition-colors"
-          onClick={onViewDetails}
+          onClick={() => onViewDetails?.(product)}
         >
           {product.name}
         </h3>
@@ -106,7 +106,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, onPreOrder, o
           {product.tags?.includes('Pre-Order') ? 'Pre-Order' : 'Add to Cart'}
         </button>
         <button 
-          onClick={onViewDetails}
+          onClick={() => onViewDetails?.(product)}
           className="w-full text-xs text-obsidian/60 hover:text-obsidian uppercase tracking-wider transition-colors py-2"
         >
           View Details

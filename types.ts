@@ -2,7 +2,7 @@
 // Add React import to resolve "Cannot find namespace 'React'" error
 import React from 'react';
 
-export type View = 'home' | 'shop' | 'club' | 'projects' | 'manifesto' | 'bible' | 'productDetail' | 'preOrder' | 'animation' | 'pitch';
+export type View = 'home' | 'shop' | 'club' | 'projects' | 'manifesto' | 'bible' | 'productDetail' | 'preOrder' | 'animation' | 'pitch' | 'productsingle';
 
 export interface Character {
   id: string;
