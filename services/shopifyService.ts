@@ -40,6 +40,8 @@ export const fetchProducts = async (): Promise<ShopifyProduct[]> => {
     });
 
     if (!response.ok) {
+      const text = await response.text().catch(() => 'unable to read response');
+      console.error('Proxy server returned non-OK:', response.status, text);
       throw new Error(`Proxy server error: ${response.status}`);
     }
 
